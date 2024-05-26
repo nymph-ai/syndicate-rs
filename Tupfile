@@ -1,0 +1,6 @@
+include_rules
+
+# TODO: define the !preserves-schemac macro in Tuprules.tup.
+# !preserves-schemac = |> ^o^ preserves-schemac %f > %o |>
+
+: schemas |> !preserves-schemac |> schema-bundle.bin | ./<bundle>
