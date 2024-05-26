@@ -45,7 +45,7 @@ Step = <<rec> @stepType symbol [@detail any]> .
 #
 Bind = <bind @description Description @target #:any @observer BindObserver> .
 Description = <<rec> @stepType symbol [@detail any]> .
-BindObserver = @present #:Bound / @absent #f .
+BindObserver = @absent #f / @present #:Bound .
 Bound = <bound @pathStep PathStep> / rpc.Error .
 
 # ---------------------------------------------------------------------------
