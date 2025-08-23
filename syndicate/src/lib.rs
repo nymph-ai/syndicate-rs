@@ -46,7 +46,7 @@ pub fn convenient_logging() -> actor::ActorResult {
     };
     let subscriber = tracing_subscriber::fmt()
         .with_ansi(true)
-        .with_thread_ids(true)
+        .with_thread_ids(false)
         .with_max_level(tracing::Level::TRACE)
         .with_env_filter(filter)
         .with_writer(std::io::stderr)
