@@ -102,7 +102,8 @@ pub enum Expr {
     Join {
         separator: Box<Expr>,
         pieces: Box<Expr>,
-    }
+    },
+    Tai64n
 }
 
 #[derive(Debug, Clone)]
@@ -583,7 +584,8 @@ impl Env {
                 };
                 let vs = pieces.iter().map(|e| ensure_string(&e)).collect::<Result<Vec<String>, _>>()?;
                 Ok(AnyValue::new(vs.join(&separator)))
-            }
+            },
+            Expr::Tai64n => Ok(AnyValue::new(syndicate::tai64n_label()))
         }
     }
 
@@ -984,6 +986,11 @@ impl<'t> Parser<'t> {
             let separator = Box::new(self.parse_expr()?);
             let pieces = Box::new(self.parse_expr()?);
             return Some(Expr::Join { separator, pieces });
+        }
+
+        if self.peek() == &Value::symbol("tai64n") {
+            self.drop();
+            return Some(Expr::Tai64n);
         }
 
         return Some(Expr::Template{ template: self.shift() });

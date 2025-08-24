@@ -33,6 +33,27 @@ pub mod trace;
 #[doc(inline)]
 pub use during::entity;
 
+use std::fmt::Write;
+pub fn tai64n_label()-> String {
+  let now = tai64::Tai64N::now();
+  // Only need a 25 characters.
+  let mut result = String::with_capacity(32);
+  write!(result, "@{:0>16x}{:0>8x}", now.0.0, now.1).unwrap();
+  result
+}
+
+struct Tai64NTime;
+
+use tracing_subscriber::fmt::format::Writer;
+impl tracing_subscriber::fmt::time::FormatTime for Tai64NTime {
+
+    fn format_time(&self, w: &mut Writer<'_>) -> std::fmt::Result {
+        let now = tai64::Tai64N::now();
+        write!(w, "@{:0>16x}{:0>8x}", now.0.0, now.1)
+    }
+
+}
+
 /// Sets up [`tracing`] logging in a reasonable way.
 ///
 /// Useful at the top of `main` functions.
@@ -45,10 +66,11 @@ pub fn convenient_logging() -> actor::ActorResult {
             tracing_subscriber::filter::EnvFilter::try_from_default_env()?,
     };
     let subscriber = tracing_subscriber::fmt()
-        .with_ansi(true)
+        .with_ansi(false)
         .with_thread_ids(false)
         .with_max_level(tracing::Level::TRACE)
         .with_env_filter(filter)
+        .with_timer(Tai64NTime)
         .with_writer(std::io::stderr)
         .finish();
     tracing::subscriber::set_global_default(subscriber)
