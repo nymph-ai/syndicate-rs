@@ -33,21 +33,21 @@ pub mod trace;
 #[doc(inline)]
 pub use during::entity;
 
-use std::fmt::Write;
-pub fn tai64n_label()-> String {
-  let now = tai64::Tai64N::now();
-  // Only need a 25 characters.
-  let mut result = String::with_capacity(32);
-  write!(result, "@{:0>16x}{:0>8x}", now.0.0, now.1).unwrap();
-  result
+/// Retrieve a string representing the current time, expressed in the timestamp format from the
+/// tai64n program, https://cr.yp.to/daemontools/tai64n.html.
+pub fn tai64n_label() -> String {
+    use std::fmt::Write;
+    let now = tai64::Tai64N::now();
+    // We preallocate exactly 25 characters.
+    let mut result = String::with_capacity(25);
+    write!(result, "@{:0>16x}{:0>8x}", now.0.0, now.1).unwrap();
+    result
 }
 
+// Exists solely for use in convenient_logging() below.
 struct Tai64NTime;
-
-use tracing_subscriber::fmt::format::Writer;
 impl tracing_subscriber::fmt::time::FormatTime for Tai64NTime {
-
-    fn format_time(&self, w: &mut Writer<'_>) -> std::fmt::Result {
+    fn format_time(&self, w: &mut tracing_subscriber::fmt::format::Writer<'_>) -> std::fmt::Result {
         let now = tai64::Tai64N::now();
         write!(w, "@{:0>16x}{:0>8x}", now.0.0, now.1)
     }
