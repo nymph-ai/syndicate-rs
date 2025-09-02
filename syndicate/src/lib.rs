@@ -51,7 +51,13 @@ impl tracing_subscriber::fmt::time::FormatTime for Tai64NTime {
         let now = tai64::Tai64N::now();
         write!(w, "@{:0>16x}{:0>8x}", now.0.0, now.1)
     }
+}
 
+#[doc(hidden)]
+pub fn use_ansi_color<T: std::io::IsTerminal>(sink: Option<&T>) -> bool {
+    let no_color = std::env::var("NO_COLOR").unwrap_or("".to_owned()).len() > 0;
+    let clicolor_force = std::env::var("CLICOLOR_FORCE").unwrap_or("".to_owned()).len() > 0;
+    !no_color && (clicolor_force || sink.is_some_and(|t| t.is_terminal()))
 }
 
 /// Sets up [`tracing`] logging in a reasonable way.
@@ -65,16 +71,24 @@ pub fn convenient_logging() -> actor::ActorResult {
         _ =>
             tracing_subscriber::filter::EnvFilter::try_from_default_env()?,
     };
+
     let subscriber = tracing_subscriber::fmt()
-        .with_ansi(false)
-        .with_thread_ids(false)
+        .with_ansi(use_ansi_color(Some(&std::io::stderr())))
+        .with_thread_ids(std::env::var("SYNDICATE_LOG_THREAD_IDS").unwrap_or("".to_owned()).len() > 0)
         .with_max_level(tracing::Level::TRACE)
         .with_env_filter(filter)
-        .with_timer(Tai64NTime)
-        .with_writer(std::io::stderr)
-        .finish();
-    tracing::subscriber::set_global_default(subscriber)
-        .expect("Could not set tracing global subscriber");
+        .with_writer(std::io::stderr);
+
+    use tracing::subscriber::set_global_default;
+    (match std::env::var("SYNDICATE_LOG_TIMESTAMP").unwrap_or("".to_owned()).as_ref() {
+        "default" =>
+            set_global_default(subscriber.finish()),
+        "tai64n" =>
+            set_global_default(subscriber.with_timer(Tai64NTime).finish()),
+        "" | "none" | _ =>
+            set_global_default(subscriber.without_time().finish()),
+    }).expect("Could not set tracing global subscriber");
+
     Ok(())
 }
 

@@ -73,28 +73,29 @@ async fn main() -> ActorResult {
     syndicate::convenient_logging()?;
 
     if !config.no_banner && !config.inferior {
-        const BRIGHT_GREEN: &str = "\x1b[92m";
-        const RED: &str = "\x1b[31m";
-        const GREEN: &str = "\x1b[32m";
-        const NORMAL: &str = "\x1b[0m";
-        const BRIGHT_YELLOW: &str = "\x1b[93m";
+        let color = syndicate::use_ansi_color(Some(&std::io::stderr()));
+        let bright_green: &str = if color { "\x1b[92m" } else { "" };
+        let red: &str = if color { "\x1b[31m" } else { "" };
+        let green: &str = if color { "\x1b[32m" } else { "" };
+        let normal: &str = if color { "\x1b[0m" } else { "" };
+        let bright_yellow: &str = if color { "\x1b[93m" } else { "" };
 
-        eprintln!(r"{}    ______   {}", GREEN, NORMAL);
-        eprintln!(r"{}   /    {}\_{}\{}  ", GREEN, BRIGHT_GREEN, GREEN, NORMAL);
-        eprintln!(r"{}  /  {},{}__/{}  \ {}                         ____           __", GREEN, RED, BRIGHT_GREEN, GREEN, NORMAL);
-        eprintln!(r"{} /{}\__/  \{},{}  \{}   _______  ______  ____/ /_/________  / /____", GREEN, BRIGHT_GREEN, RED, GREEN, NORMAL);
-        eprintln!(r"{} \{}/  \__/   {}/{}  / ___/ / / / __ \/ __  / / ___/ __ \/ __/ _ \", GREEN, BRIGHT_GREEN, GREEN, NORMAL);
-        eprintln!(r"{}  \  {}'{}  \__{}/ {} _\_ \/ /_/ / / / / /_/ / / /__/ /_/ / /_/  __/", GREEN, RED, BRIGHT_GREEN, GREEN, NORMAL);
-        eprintln!(r"{}   \____{}/{}_/ {} /____/\__, /_/ /_/\____/_/\___/\__/_/\__/\___/", GREEN, BRIGHT_GREEN, GREEN, NORMAL);
+        eprintln!(r"{}    ______   {}", green, normal);
+        eprintln!(r"{}   /    {}\_{}\{}  ", green, bright_green, green, normal);
+        eprintln!(r"{}  /  {},{}__/{}  \ {}                         ____           __", green, red, bright_green, green, normal);
+        eprintln!(r"{} /{}\__/  \{},{}  \{}   _______  ______  ____/ /_/________  / /____", green, bright_green, red, green, normal);
+        eprintln!(r"{} \{}/  \__/   {}/{}  / ___/ / / / __ \/ __  / / ___/ __ \/ __/ _ \", green, bright_green, green, normal);
+        eprintln!(r"{}  \  {}'{}  \__{}/ {} _\_ \/ /_/ / / / / /_/ / / /__/ /_/ / /_/  __/", green, red, bright_green, green, normal);
+        eprintln!(r"{}   \____{}/{}_/ {} /____/\__, /_/ /_/\____/_/\___/\__/_/\__/\___/", green, bright_green, green, normal);
         eprintln!(r"                  /____/");
         eprintln!(r"");
         eprintln!(r" {}version {} [syndicate {}, preserves {}, preserves spec {}]{}",
-                  BRIGHT_YELLOW,
+                  bright_yellow,
                   env!("CARGO_PKG_VERSION"),
                   syndicate::syndicate_package_version(),
                   syndicate::preserves::preserves_package_version(),
                   syndicate::preserves::preserves_spec_version(),
-                  NORMAL);
+                  normal);
         eprintln!(r"");
         eprintln!(r" documentation & reference material: https://syndicate-lang.org/");
         eprintln!(r" source code & bugs: https://git.syndicate-lang.org/syndicate-lang/syndicate-rs");
