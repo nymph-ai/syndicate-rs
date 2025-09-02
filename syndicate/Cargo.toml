@@ -35,13 +35,14 @@ blake2 = "0.10"
 getrandom = "0.2"
 hmac = "0.12"
 
+tai64 = "4.1.0"
+
 tracing.workspace = true
+tracing-subscriber = { workspace = true, features = ["env-filter"] }
 tracing-futures.workspace = true
 
 # Only used for vendored-openssl, which in turn is being used for cross-builds
 openssl = { version = "0.10", optional = true }
-tai64 = "4.1.0"
-tracing-subscriber = { version = "0.3.19", features = ["env-filter", "fmt", "registry", "std"], default-features = false }
 
 [dev-dependencies]
 criterion.workspace = true
