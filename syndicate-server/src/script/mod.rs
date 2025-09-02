@@ -94,6 +94,7 @@ pub enum Expr {
     },
     Dataspace,
     Timestamp,
+    Tai64n,
     Facet,
     ScriptDir,
     Stringify {
@@ -103,7 +104,6 @@ pub enum Expr {
         separator: Box<Expr>,
         pieces: Box<Expr>,
     },
-    Tai64n
 }
 
 #[derive(Debug, Clone)]
@@ -562,6 +562,7 @@ impl Env {
             Expr::Template { template } => self.instantiate_value(template),
             Expr::Dataspace => Ok(AnyValue::embedded(Cap::new(&t.create(Dataspace::new(None))))),
             Expr::Timestamp => Ok(AnyValue::new(chrono::Utc::now().to_rfc3339())),
+            Expr::Tai64n => Ok(AnyValue::new(syndicate::tai64n_label())),
             Expr::Facet => Ok(AnyValue::embedded(Cap::new(&t.create(FacetHandle::new())))),
             Expr::ScriptDir => {
                 let p = match self.path.parent().map(|p| p.to_string_lossy()) {
@@ -585,7 +586,6 @@ impl Env {
                 let vs = pieces.iter().map(|e| ensure_string(&e)).collect::<Result<Vec<String>, _>>()?;
                 Ok(AnyValue::new(vs.join(&separator)))
             },
-            Expr::Tai64n => Ok(AnyValue::new(syndicate::tai64n_label()))
         }
     }
 
@@ -966,6 +966,11 @@ impl<'t> Parser<'t> {
             return Some(Expr::Timestamp);
         }
 
+        if self.peek() == &Value::symbol("tai64n") {
+            self.drop();
+            return Some(Expr::Tai64n);
+        }
+
         if self.peek() == &Value::symbol("facet") {
             self.drop();
             return Some(Expr::Facet);
@@ -986,11 +991,6 @@ impl<'t> Parser<'t> {
             let separator = Box::new(self.parse_expr()?);
             let pieces = Box::new(self.parse_expr()?);
             return Some(Expr::Join { separator, pieces });
-        }
-
-        if self.peek() == &Value::symbol("tai64n") {
-            self.drop();
-            return Some(Expr::Tai64n);
         }
 
         return Some(Expr::Template{ template: self.shift() });
