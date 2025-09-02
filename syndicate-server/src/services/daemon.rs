@@ -254,7 +254,7 @@ impl DaemonInstance {
                         Ok(s) => AnyValue::new(s),
                         Err(bs) => AnyValue::bytes(bs.into_bytes()),
                     };
-                    let now = AnyValue::new(syndicate::tai64n_label());
+                    let now = AnyValue::new(chrono::Utc::now().to_rfc3339());
                     if !facet.activate(
                         &account, cause.clone(), enclose!((pid, service, kind) |t| {
                             log_ds.message(t, &syndicate_macros::template!(
