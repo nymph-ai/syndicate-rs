@@ -21,6 +21,7 @@ use syndicate::preserves::TextWriter;
 use syndicate::preserves::Value;
 use syndicate::preserves::ValueClass;
 use syndicate::preserves::ValueImpl;
+use syndicate::preserves::merge::merge2;
 
 use preserves_schema::Unparse;
 
@@ -104,6 +105,10 @@ pub enum Expr {
         separator: Box<Expr>,
         pieces: Box<Expr>,
     },
+    Merge {
+        a: Box<Expr>,
+        b: Box<Expr>,
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -586,6 +591,12 @@ impl Env {
                 let vs = pieces.iter().map(|e| ensure_string(&e)).collect::<Result<Vec<String>, _>>()?;
                 Ok(AnyValue::new(vs.join(&separator)))
             },
+            Expr::Merge { a, b } => {
+                merge2(
+                    self.eval_expr(t, a)?,
+                    self.eval_expr(t, b)?
+                ).ok_or(bad_instruction(&format!("Merge of {:?} and {:?} failed", a, b)))
+            },
         }
     }
 
@@ -991,6 +1002,13 @@ impl<'t> Parser<'t> {
             let separator = Box::new(self.parse_expr()?);
             let pieces = Box::new(self.parse_expr()?);
             return Some(Expr::Join { separator, pieces });
+        }
+
+        if self.peek() == &Value::symbol("merge") {
+            self.drop();
+            let a = Box::new(self.parse_expr()?);
+            let b = Box::new(self.parse_expr()?);
+            return Some(Expr::Merge { a, b });
         }
 
         return Some(Expr::Template{ template: self.shift() });
