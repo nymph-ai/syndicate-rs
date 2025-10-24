@@ -1375,7 +1375,9 @@ impl Activation {
         self.rollback_actions.push(Box::new(action));
     }
 
-    fn on_commit<F: 'static + Send + FnOnce(&mut Activation)>(&mut self, action: F) {
+    /// Be warned this is executed in a fairly privileged context, it's deep in the guts of committing the turn's transaction
+    #[doc(hidden)]
+    pub fn on_commit<F: 'static + Send + FnOnce(&mut Activation)>(&mut self, action: F) {
         self.commit_actions.push(Box::new(action));
     }
 
