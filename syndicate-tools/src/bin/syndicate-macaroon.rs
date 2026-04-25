@@ -5,7 +5,6 @@ use clap::ArgGroup;
 use clap::CommandFactory;
 use clap::Parser;
 use clap::Subcommand;
-use clap::arg;
 use clap_complete::{generate, Shell};
 use noise_protocol::DH;
 use noise_protocol::Hash;

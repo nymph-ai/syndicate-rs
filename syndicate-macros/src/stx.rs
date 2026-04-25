@@ -1,6 +1,5 @@
 use proc_macro2::Delimiter;
 use proc_macro2::LineColumn;
-use proc_macro2::Span;
 use proc_macro2::TokenStream;
 
 use syn::ExprLit;
@@ -69,41 +68,24 @@ fn punct_char(c: Cursor) -> Option<(char, Cursor)> {
     c.punct().map(|(p, c)| (p.as_char(), c))
 }
 
-fn start_pos(s: Span) -> LineColumn {
-    // We would like to write
-    //     s.start()
-    // here, but until [1] is fixed (perhaps via [2]), we have to go the unsafe route
-    // and assume we are in procedural macro context.
-    // [1]: https://github.com/dtolnay/proc-macro2/issues/402
-    // [2]: https://github.com/dtolnay/proc-macro2/pull/407
-    let u = s.unwrap().start();
-    LineColumn { column: u.column(), line: u.line() }
-}
-
-fn end_pos(s: Span) -> LineColumn {
-    // See start_pos
-    let u = s.unwrap().end();
-    LineColumn { column: u.column(), line: u.line() }
-}
-
 fn parse_id(mut c: Cursor) -> Result<(String, Cursor)> {
     let mut id = String::new();
-    let mut prev_pos = start_pos(c.span());
+    let mut prev_pos = c.span().start();
     loop {
-        if c.eof() || start_pos(c.span()) != prev_pos {
+        if c.eof() || c.span().start() != prev_pos {
             return Ok((id, c));
         } else if let Some((p, next)) = c.punct() {
             match p.as_char() {
                 '<' | '>' | '(' | ')' | '{' | '}' | '[' | ']' | ',' | ':' => return Ok((id, c)),
                 ch => {
                     id.push(ch);
-                    prev_pos = end_pos(c.span());
+                    prev_pos = c.span().end();
                     c = next;
                 }
             }
         } else if let Some((i, next)) = c.ident() {
             id.push_str(&i.to_string());
-            prev_pos = end_pos(i.span());
+            prev_pos = i.span().end();
             c = next;
         } else {
             return Ok((id, c));
@@ -169,7 +151,7 @@ fn parse_kv(c: Cursor) -> Result<((Stx, Stx), Cursor)> {
 }
 
 fn adjacent_ident(pos: LineColumn, c: Cursor) -> (Option<Ident>, Cursor) {
-    if start_pos(c.span()) != pos {
+    if c.span().start() != pos {
         (None, c)
     } else if let Some((id, next)) = c.ident() {
         (Some(id), next)
@@ -193,8 +175,8 @@ fn parse_generic<T: Parse>(mut c: Cursor) -> Option<(T, Cursor)> {
             // OK, because parse2 checks for end-of-stream, let's chop
             // the input at the position of the error and try again (!).
             let mut collected = Vec::new();
-            let upto = start_pos(e.span());
-            while !c.eof() && start_pos(c.span()) != upto {
+            let upto = e.span().start();
+            while !c.eof() && c.span().start() != upto {
                 let (tt, next) = c.token_tree().unwrap();
                 collected.push(tt);
                 c = next;
@@ -216,7 +198,7 @@ fn parse1(c: Cursor) -> Result<(Stx, Cursor)> {
                 Ok((Stx::Rec(Box::new(q.remove(0)), q), c))
             }),
             '$' => {
-                let (maybe_id, next) = adjacent_ident(end_pos(p.span()), next);
+                let (maybe_id, next) = adjacent_ident(p.span().end(), next);
                 let (maybe_type, next) = if let Some((':', next)) = punct_char(next) {
                     match parse_generic::<Type>(next) {
                         Some((t, next)) => (Some(t), next),

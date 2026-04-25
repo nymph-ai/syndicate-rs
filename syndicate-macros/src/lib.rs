@@ -1,5 +1,3 @@
-#![feature(proc_macro_span)]
-
 use syndicate::preserves::Atom;
 use syndicate::preserves::AtomClass;
 use syndicate::preserves::CompoundClass;
