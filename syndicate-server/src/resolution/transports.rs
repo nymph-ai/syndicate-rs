@@ -32,7 +32,7 @@ impl Entity<G::TransportControl> for TransportControl {
 
 pub fn on_demand(t: &mut Activation, ds: Arc<Cap>) {
     t.spawn(Some(AnyValue::symbol("transport_connector")), move |t| {
-        during!(t, ds, <q <connect-transport $addr: Tcp>>, |t| {
+        enclose!((ds) during!(t, ds, <q <connect-transport $addr: Tcp>>, |t| {
             let addr_v = addr.unparse();
             Supervisor::start(
                 t,
@@ -40,6 +40,17 @@ pub fn on_demand(t: &mut Activation, ds: Arc<Cap>) {
                 SupervisorConfiguration::default(),
                 |_t, _s| Ok(()),
                 enclose!((ds) move |t| enclose!((ds, addr) run(t, ds, addr))))
+        }));
+        during!(t, ds, <q <connect-transport $addr: Arc<Cap>>>, |t: &mut Activation| {
+            let control = Cap::guard(t.create_inert::<AnyValue>());
+            ds.assert(t, &rpc::answer(
+                G::ConnectTransport { addr: addr.unparse() },
+                R::Result::Ok(R::Ok { value: (G::ConnectedTransport {
+                    addr: addr.unparse(),
+                    control,
+                    responder_session: addr,
+                }).unparse() })));
+            Ok(())
         });
         Ok(())
     });
