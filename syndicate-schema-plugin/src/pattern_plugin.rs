@@ -53,11 +53,11 @@ impl Plugin for PatternPlugin {
                 ctxt.define_type(item(seq![
                     "impl",
                     ty.generic_decl(ctxt),
-                    " ",
+                    " ", self.syndicate_crate.clone(), "::dataspace::AsDataspacePattern for ",
                     names::render_constructor(definition_name),
                     ty.generic_arg(ctxt),
                     " ", codeblock![
-                        seq!["#[allow(unused)] pub fn wildcard_dataspace_pattern() ",
+                        seq!["fn wildcard_dataspace_pattern() ",
                              seq!["-> ", self.syndicate_crate.clone(), "::schemas::dataspace_patterns::Pattern "],
                              codeblock![
                                  seq!["use ", self.syndicate_crate.clone(), "::schemas::dataspace_patterns::*;"],

@@ -2530,6 +2530,19 @@ impl Cap {
                     self.attenuation)
         }
     }
+
+    fn _clone(&self) -> Cap {
+        Cap {
+            underlying: Arc::clone(&self.underlying),
+            attenuation: self.attenuation.clone(),
+        }
+    }
+}
+
+impl super::dataspace::AsDataspacePattern for Cap {
+    fn wildcard_dataspace_pattern() -> super::schemas::dataspace_patterns::Pattern {
+        super::schemas::dataspace_patterns::Pattern::Discard
+    }
 }
 
 impl std::fmt::Debug for Cap {
@@ -2539,6 +2552,19 @@ impl std::fmt::Debug for Cap {
 }
 
 impl Domain for Cap {}
+
+impl Parse<Arc<Cap>> for Cap {
+    fn parse(value: &AnyValue) -> preserves::ReaderResult<Self> {
+        let c = value.to_embedded().map_err(|k| preserves::SyntaxError::Expected(k).at(None))?;
+        Ok(c._clone())
+    }
+}
+
+impl Unparse<Arc<Cap>> for Cap {
+    fn unparse(&self) -> AnyValue {
+        Value::embedded(Arc::new(self._clone()))
+    }
+}
 
 impl<M> Entity<AnyValue> for Guard<M>
 where

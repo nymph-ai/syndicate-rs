@@ -15,6 +15,29 @@ use super::schemas::dataspace::*;
 use preserves::Map;
 use preserves_schema::Parse;
 
+/// Trait implemented by types able to serve in pattern context (in macros provided by `syndicate-macros`).
+pub trait AsDataspacePattern {
+    fn wildcard_dataspace_pattern() -> super::schemas::dataspace_patterns::Pattern;
+}
+
+impl<T: AsDataspacePattern> AsDataspacePattern for std::sync::Arc<T> {
+    fn wildcard_dataspace_pattern() -> super::schemas::dataspace_patterns::Pattern {
+        T::wildcard_dataspace_pattern()
+    }
+}
+
+impl<T: AsDataspacePattern> AsDataspacePattern for std::rc::Rc<T> {
+    fn wildcard_dataspace_pattern() -> super::schemas::dataspace_patterns::Pattern {
+        T::wildcard_dataspace_pattern()
+    }
+}
+
+impl<T: AsDataspacePattern> AsDataspacePattern for Box<T> {
+    fn wildcard_dataspace_pattern() -> super::schemas::dataspace_patterns::Pattern {
+        T::wildcard_dataspace_pattern()
+    }
+}
+
 /// A Dataspace object (entity).
 #[derive(Debug)]
 pub struct Dataspace {
