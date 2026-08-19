@@ -1535,9 +1535,9 @@ dependencies = [
 
 [[package]]
 name = "preserves-schema"
-version = "6.0.0-rc.6"
+version = "6.0.0-rc.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "458f512c947ac9c78ae28607be09c32405c28ca835a6eb945f70d56ec0e359fd"
+checksum = "6e4027d9e1f3fcf051db1e6074ad22bf7d81359e6324722569740ccd6a340f14"
 dependencies = [
  "convert_case",
  "glob",

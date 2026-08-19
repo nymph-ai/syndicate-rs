@@ -18,7 +18,7 @@ edition = "2018"
 
 [workspace.dependencies]
 preserves = "5.0.0-rc.7"
-preserves-schema = "6.0.0-rc.5"
+preserves-schema = "6.0.0-rc.7"
 
 tokio = "1.10"
 tokio-util = "0.6"
