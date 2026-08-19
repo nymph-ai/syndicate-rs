@@ -9,7 +9,11 @@ jobs:
       image: git.syndicate-lang.org/syndicate-lang/rust-builder:latest
     steps:
       - uses: actions/checkout@v3
-      - run: CROSS_CONTAINER_IN_CONTAINER=true make ci-release
+      - run: CROSS_CONTAINER_IN_CONTAINER=true make test-integration ci-release
+      - uses: actions/upload-artifact@v3
+        with:
+          name: integration-test-logs
+          path: tests/integration/_logs
       - uses: actions/upload-artifact@v3
         with:
           name: syndicate-server-x86_64
