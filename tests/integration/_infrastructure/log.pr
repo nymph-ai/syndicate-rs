@@ -1,0 +1,11 @@
+? <debug-dataspace ?ds ?label> [
+  $ds ? ?x [
+    ?- $log ! <log "-" { retraction: $x stream: $label }>
+    $log ! <log "-" { assertion: $x stream: $label }>
+  ]
+  $ds ?? ?x [
+    $log ! <log "-" { message: $x stream: $label }>
+  ]
+]
+
+<debug-dataspace $config "config">

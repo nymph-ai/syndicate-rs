@@ -1,0 +1,2 @@
+? <pass> [ $control ! <exit 0> ]
+? <fail> [ $control ! <exit 1> ]

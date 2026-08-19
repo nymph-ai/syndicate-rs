@@ -7,11 +7,15 @@ __ignored__ := $(shell ./setup.sh)
 all:
 	cargo build --all-targets
 
-test:
-	cargo test
-
 test-all:
 	cargo test --all-targets
+	$(MAKE) test-integration
+
+test-quick:
+	cargo test
+
+test-integration:
+	cd tests && ./run-integration-tests.sh
 
 ws-bump:
 	cargo workspaces version \
