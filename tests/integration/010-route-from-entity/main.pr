@@ -1,0 +1,8 @@
+# Test that it is possible to have a plain entity as a "transport" for starting a route path resolution.
+
+let ?e = dataspace
+<q <resolve-path <route [$e]>>>
+? <a <resolve-path <route [$e]>> <ok <resolved-path _ _ $e>>> [
+  # ^ NB we require the resolved session entity here to be exactly $e
+  <pass>
+]
