@@ -72,4 +72,8 @@ else
     done
 fi
 
+if [ "$finalstatus" = "0" ]
+then
+    echo 'All tests passed!'
+fi
 exit $finalstatus
