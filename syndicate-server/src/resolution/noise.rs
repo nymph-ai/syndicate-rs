@@ -452,6 +452,9 @@ fn make_handshake(
     Ok(hs)
 }
 
+// We can't use super::client::handle_simple_path_steps here, because we actually
+// have to do a bit of compute (session initiation) rather than just relaying the
+// resolution request on to the origin each time.
 pub fn handle_noise_path_steps(t: &mut Activation, ds: Arc<Cap>) -> ActorResult {
     during!(t, ds,
             <q <resolve-path-step $origin <noise $spec0>>>,

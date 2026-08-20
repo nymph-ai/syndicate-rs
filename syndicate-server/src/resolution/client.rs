@@ -37,10 +37,41 @@ pub fn start(t: &mut Activation, ds: Arc<Cap>) {
     }));
 
     t.spawn(Some(AnyValue::symbol("sturdy_ref_step")),
-            enclose!((ds) move |t| super::sturdy::handle_sturdy_path_steps(t, ds)));
+            enclose!((ds) move |t| handle_simple_path_steps(t, ds, "ref")));
 
     t.spawn(Some(AnyValue::symbol("noise_ref_step")),
             enclose!((ds) move |t| super::noise::handle_noise_path_steps(t, ds)));
+}
+
+pub fn handle_simple_path_steps(t: &mut Activation, ds: Arc<Cap>, step_type: &'static str) -> ActorResult {
+    during!(t, ds, <q <resolve-path-step $origin <#(AnyValue::symbol(step_type)) $detail>>>,
+            enclose!((ds) move |t: &mut Activation| {
+                if let Some(origin) = origin.as_embedded().map(|r| r.into_owned()) {
+                    let observer = Cap::guard(t.create(
+                        syndicate::entity(()).on_asserted_facet(
+                            enclose!((origin, detail) move |_, t, r: R::Result| {
+                                ds.assert(t, &rpc::answer(
+                                    G::ResolvePathStep {
+                                        origin: origin.clone(),
+                                        path_step: G::PathStep {
+                                            step_type: step_type.to_string(),
+                                            detail: detail.clone(),
+                                        },
+                                    },
+                                    r));
+                                Ok(())
+                            }))));
+                    origin.assert(t, &G::Resolve {
+                        step: G::Step {
+                            step_type: step_type.to_string(),
+                            detail: detail,
+                        },
+                        observer,
+                    });
+                }
+                Ok(())
+            }));
+    Ok(())
 }
 
 fn run(t: &mut Activation, ds: Arc<Cap>, route: G::Route) -> ActorResult {

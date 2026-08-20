@@ -1,9 +1,7 @@
 use std::sync::Arc;
 
 use syndicate::actor::*;
-use syndicate::rpc;
 
-use syndicate::enclose;
 use syndicate_macros::during;
 use syndicate_macros::pattern;
 
@@ -97,37 +95,5 @@ fn await_bind_sturdyref(
         pattern: pattern!{<bind <ref { oid: #(&queried_oid), key: $ }> $ _>},
         observer: handler,
     });
-    Ok(())
-}
-
-pub fn handle_sturdy_path_steps(t: &mut Activation, ds: Arc<Cap>) -> ActorResult {
-    during!(t, ds,
-            <q <resolve-path-step $origin <ref $parameters: sturdy::SturdyPathStepDetail::<Arc<Cap>>>>>,
-            enclose!((ds) move |t: &mut Activation| {
-                if let Some(origin) = origin.as_embedded().map(|r| r.into_owned()) {
-                    let observer = Cap::guard(t.create(
-                        syndicate::entity(()).on_asserted_facet(
-                            enclose!((origin, parameters) move |_, t, r: R::Result| {
-                                ds.assert(t, &rpc::answer(
-                                    gatekeeper::ResolvePathStep {
-                                        origin: origin.clone(),
-                                        path_step: gatekeeper::PathStep {
-                                            step_type: "ref".to_string(),
-                                            detail: parameters.unparse(),
-                                        },
-                                    },
-                                    r));
-                                Ok(())
-                            }))));
-                    origin.assert(t, &gatekeeper::Resolve {
-                        step: gatekeeper::Step {
-                            step_type: "ref".to_string(),
-                            detail: parameters.unparse(),
-                        },
-                        observer,
-                    });
-                }
-                Ok(())
-            }));
     Ok(())
 }
