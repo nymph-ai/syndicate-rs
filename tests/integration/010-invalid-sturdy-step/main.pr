@@ -1,0 +1,6 @@
+# Check that we are able to trigger the <error invalid> path when resolving
+# something that claims to be a sturdyref
+
+? <reply-was <error invalid>> [<pass>]
+
+$gatekeeper += <resolve <ref bogus> <* $config [<rewrite ?x <reply-was $x>>]>>

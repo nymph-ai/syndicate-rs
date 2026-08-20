@@ -1,0 +1,18 @@
+# Request an ill-formed sturdyref over a TCP connection. We should see an <error invalid> response.
+
+let ?s = <relay-listener <tcp "127.0.0.1" 9001> $gatekeeper>
+<require-service $s>
+? <service-state $s ready> [
+  let ?r = <ref bogus>
+  # This causes a <q <resolve-path-step ...>>, but when the corresponding <a> is an error,
+  # doesn't cause the whole resolve-path to <a> with an error, because *things may change
+  # later*. The point of a <resolve-path> is to be reactively continuously trying to establish
+  # and maintain a connection, not to try just once.
+  <q <resolve-path <route [<tcp "127.0.0.1" 9001>] $r>>>
+  # So instead, we expect the individual resolve-path-step to fail. TODO: Consider having
+  # explicit treatment of permanent vs temporary failures, so that a permanent (in HTTP terms,
+  # 400-series) failure like this can cause failure of the overall <resolve-path>. OR,
+  # alternatively, given that other kinds of invalidity such as `{oid: some-oid sig: #[]}` are
+  # silently dropped, reconsider the idea of an `<error invalid>` entirely!
+  ? <a <resolve-path-step _ $r> <error invalid>> [<pass>]
+]
