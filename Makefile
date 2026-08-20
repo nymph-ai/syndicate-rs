@@ -15,7 +15,7 @@ test-quick:
 	cargo test
 
 test-integration:
-	cd tests && ./run-integration-tests.sh
+	./run-integration-tests.sh
 
 ws-bump:
 	cargo workspaces version \

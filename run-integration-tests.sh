@@ -11,7 +11,7 @@ else
     foreground=
 fi
 
-TEST_LOGDIR="${TEST_LOGDIR:-./integration/_logs}"
+TEST_LOGDIR="${TEST_LOGDIR:-./tests/integration/_logs}"
 TEST_TIMEOUT="${TEST_TIMEOUT:-1}"
 TEST_COMMAND="${TEST_COMMAND:-cargo run $TEST_CARGO_FLAGS --}"
 
@@ -35,12 +35,12 @@ runtest() {
         if [ -n "$foreground" ]
         then
             $TEST_COMMAND \
-                -c ./integration/_infrastructure \
+                -c ./tests/integration/_infrastructure \
                 -c "$testcasedir" \
                 --control
         else
             timeout "$TEST_TIMEOUT" $TEST_COMMAND \
-                    -c ./integration/_infrastructure \
+                    -c ./tests/integration/_infrastructure \
                     -c "$testcasedir" \
                     --control \
                     > "$TEST_LOGDIR/${testcasename}-stdout" \
@@ -58,7 +58,7 @@ if [ -n "$specifictestdir" ]
 then
     runtest "$specifictestdir"
 else
-    for testcasedir in ./integration/*/
+    for testcasedir in ./tests/integration/*/
     do
         testcasename="$(basename "$testcasedir")"
         case "$testcasename" in
