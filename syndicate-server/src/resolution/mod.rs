@@ -10,7 +10,7 @@ pub mod sturdy;
 pub mod transports;
 
 fn handle_direct_resolution(
-    ds: &mut Arc<Cap>,
+    bindspace: &mut Arc<Cap>,
     t: &mut Activation,
     a: gatekeeper::Resolve,
 ) -> Result<FacetId, ActorError> {
@@ -26,7 +26,7 @@ fn handle_direct_resolution(
                 Ok(None)
             })
             .create_cap(t);
-        ds.assert(t, &gatekeeper::Resolve {
+        bindspace.assert(t, &gatekeeper::Resolve {
             step: a.step.clone(),
             observer: handler,
         });

@@ -22,8 +22,8 @@ fn sturdy_step_type() -> String {
     unparse_iovalue(&sturdy::SturdyStepType).to_symbol().unwrap().into_owned()
 }
 
-pub fn handle_sturdy_binds(t: &mut Activation, ds: &Arc<Cap>) -> ActorResult {
-    during!(t, ds, <bind <ref $desc> $target $observer>, |t: &mut Activation| {
+pub fn handle_sturdy_binds(t: &mut Activation, bindspace: &Arc<Cap>) -> ActorResult {
+    during!(t, bindspace, <bind <ref $desc> $target $observer>, |t: &mut Activation| {
         t.spawn_link(None, move |t| {
             target.to_embedded()?;
             let observer = gatekeeper::BindObserver::parse(&observer)?;
@@ -44,13 +44,13 @@ pub fn handle_sturdy_binds(t: &mut Activation, ds: &Arc<Cap>) -> ActorResult {
     Ok(())
 }
 
-pub fn take_sturdy_step(t: &mut Activation, ds: &mut Arc<Cap>, a: &gatekeeper::Resolve, detail: &mut &'static str) -> Result<bool, ActorError> {
+pub fn take_sturdy_step(t: &mut Activation, bindspace: &mut Arc<Cap>, a: &gatekeeper::Resolve, detail: &mut &'static str) -> Result<bool, ActorError> {
     if a.step.step_type == sturdy_step_type() {
         *detail = "invalid";
         if let Ok(s) = sturdy::SturdyStepDetail::parse(&a.step.detail) {
             t.facet(|t| {
-                let f = super::handle_direct_resolution(ds, t, a.clone())?;
-                await_bind_sturdyref(ds, t, sturdy::SturdyRef { parameters: s.0 }, a.observer.clone(), f)
+                let f = super::handle_direct_resolution(bindspace, t, a.clone())?;
+                await_bind_sturdyref(bindspace, t, sturdy::SturdyRef { parameters: s.0 }, a.observer.clone(), f)
             })?;
             return Ok(true);
         }
@@ -59,7 +59,7 @@ pub fn take_sturdy_step(t: &mut Activation, ds: &mut Arc<Cap>, a: &gatekeeper::R
 }
 
 fn await_bind_sturdyref(
-    ds: &mut Arc<Cap>,
+    bindspace: &mut Arc<Cap>,
     t: &mut Activation,
     sturdyref: sturdy::SturdyRef,
     observer: Arc<Cap>,
@@ -92,7 +92,7 @@ fn await_bind_sturdyref(
             Ok(None)
         })
         .create_cap(t);
-    ds.assert(t, &dataspace::Observe {
+    bindspace.assert(t, &dataspace::Observe {
         // TODO: codegen plugin to generate pattern constructors
         pattern: pattern!{<bind <ref { oid: #(&queried_oid), key: $ }> $ _>},
         observer: handler,

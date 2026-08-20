@@ -37,8 +37,8 @@ fn noise_step_type() -> String {
     unparse_iovalue(&noise::NoiseStepType).to_symbol().unwrap().into_owned()
 }
 
-pub fn handle_noise_binds(t: &mut Activation, ds: &Arc<Cap>) -> ActorResult {
-    during!(t, ds, <bind <noise $desc> $target $observer>, |t: &mut Activation| {
+pub fn handle_noise_binds(t: &mut Activation, bindspace: &Arc<Cap>) -> ActorResult {
+    during!(t, bindspace, <bind <noise $desc> $target $observer>, |t: &mut Activation| {
         t.spawn_link(None, move |t| {
             target.to_embedded()?;
             let observer = gatekeeper::BindObserver::parse(&observer)?;
@@ -84,13 +84,13 @@ pub fn handle_noise_binds(t: &mut Activation, ds: &Arc<Cap>) -> ActorResult {
     Ok(())
 }
 
-pub fn take_noise_step(t: &mut Activation, ds: &mut Arc<Cap>, a: &gatekeeper::Resolve, detail: &mut &'static str) -> Result<bool, ActorError> {
+pub fn take_noise_step(t: &mut Activation, bindspace: &mut Arc<Cap>, a: &gatekeeper::Resolve, detail: &mut &'static str) -> Result<bool, ActorError> {
     if a.step.step_type == noise_step_type() {
         *detail = "invalid";
         if let Ok(s) = noise::NoiseStepDetail::parse(&a.step.detail) {
             t.facet(|t| {
-                let f = super::handle_direct_resolution(ds, t, a.clone())?;
-                await_bind_noise(ds, t, s.0.0, a.observer.clone(), f)
+                let f = super::handle_direct_resolution(bindspace, t, a.clone())?;
+                await_bind_noise(bindspace, t, s.0.0, a.observer.clone(), f)
             })?;
             return Ok(true);
         }
@@ -163,7 +163,7 @@ fn validate_noise_service_spec(
 }
 
 fn await_bind_noise(
-    ds: &mut Arc<Cap>,
+    bindspace: &mut Arc<Cap>,
     t: &mut Activation,
     service_selector: AnyValue,
     observer: Arc<Cap>,
@@ -186,7 +186,7 @@ fn await_bind_noise(
             Ok(())
         })
         .create_cap(t);
-    ds.assert(t, &dataspace::Observe {
+    bindspace.assert(t, &dataspace::Observe {
         // TODO: codegen plugin to generate pattern constructors
         pattern: pattern!{
             <bind <noise $spec:NoiseServiceSpec{ { service: #(&service_selector) } }> $service _>

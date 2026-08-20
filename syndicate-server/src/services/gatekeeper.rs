@@ -45,13 +45,13 @@ fn run(t: &mut Activation, ds: Arc<Cap>, spec: Gatekeeper<Arc<Cap>>) -> ActorRes
 }
 
 fn facet_handle_resolve(
-    ds: &mut Arc<Cap>,
+    bindspace: &mut Arc<Cap>,
     t: &mut Activation,
     a: gatekeeper::Resolve,
 ) -> ActorResult {
     let mut detail: &'static str = "unsupported";
-    if sturdy::take_sturdy_step(t, ds, &a, &mut detail)? { return Ok(()); }
-    if noise::take_noise_step(t, ds, &a, &mut detail)? { return Ok(()); }
+    if sturdy::take_sturdy_step(t, bindspace, &a, &mut detail)? { return Ok(()); }
+    if noise::take_noise_step(t, bindspace, &a, &mut detail)? { return Ok(()); }
     a.observer.assert(t, &R::Result::Error(R::Error {
         error: AnyValue::symbol(detail) }));
     Ok(())
