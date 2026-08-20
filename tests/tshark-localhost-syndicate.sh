@@ -17,6 +17,6 @@ tshark -i lo \
             echo
             echo "$(date --rfc-3339=ns)	$src:$srcport::$dst:$dstport"
 	    echo $body
-            echo $body | xxd -r -p | preserves-tool
+            echo $body | xxd -r -p | preserves-tool 2>&1
         fi
     done
