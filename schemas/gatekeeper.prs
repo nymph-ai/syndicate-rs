@@ -11,37 +11,44 @@ Step = <<rec> @stepType symbol [@detail any]> .
 
 # ---------------------------------------------------------------------------
 # Protocol at dataspaces *associated* with gatekeeper entities
-
+#
+# ## Bindspaces
+#
+# The dataspace associated with a gatekeeper is called the gatekeeper's *bindspace*.
+#
 # ## Handling `Resolve` requests
 #
-# When the gatekeeper entity receives a `Resolve` assertion (call it R1), it
+# When the gatekeeper entity receives a `Resolve` assertion (call it R1), it asserts R1
+# directly into the bindspace.
 #
-#  1. asserts a `Resolve` (call it R2) into its associated dataspace that
-#     is the same as R1 except it has a different `observer`; and
+# Each different `stepType` supported by a gatekeeper maintains a handler for responding to
+# `Resolve` requests in the bindspace having that `stepType`.
 #
-#  2. observes a `Bind` with `description` matching the `step` of R1/R2
-#     according to `stepType` (e.g. treatment of SturdyStepType is not the
-#     same as treatment of NoiseStepType).
+# Let's focus on the handler for R1's `stepType`. When the handler sees R1, it checks the
+# `detail` in R1's `step`. If the `detail` is invalid, it replies to R1's `observer` with an
+# `<error invalid>`.
 #
-# Normally, an appropriate `Bind` is expected to exist. If the gatekeeper
-# sees the `Bind` first, it takes the `target` from it and does whatever
-# `stepType` mandates before replying to R1's observer.
+# If the `detail` is OK, however, then a per-`stepType` procedure is kicked off. Some
+# `stepType`s are simple, and just wait for a matching `Bind`. When they see such a `Bind`,
+# they take the `target` from it and pass it back to R1's `observer` in an `rpc.Ok`.
 #
-# However, if an `rpc.Ok` is asserted to R2's observer before a `Bind`
-# appears, that resolution is relayed on to R1's observer directly, be it
-# positive or negative, and the gatekeeper stops waiting for a `Bind`.
+# Some `stepType`s are not so simple. For example, SturdyStepType demands validation of the
+# signature in the `detail` using a key that can only be retrieved from a particular `Bind`, so
+# the handler for SturdyStepType waits for the bind, validates the signature, and only then
+# conditionaly replies to R1's `observer`. Similarly, NoiseStepType constructs a responder
+# session using information from a `Bind`, and replies to R1 with the *responder session*
+# wrapping the `target` from the `Bind`, rather than with the `target` directly.
 #
-# This way, entities can keep an eye out for `Resolve` requests that will
-# never complete, and answer `rpc.Error` to them even when no matching
-# `Bind` exists. Entities could also use `Resolve` requests to synthesize a
-# `Bind` in a "just-in-time" fashion.
+# Handlers in the bindspace are free to use `Resolve` requests to synthesize a `Bind` in a
+# "just-in-time" fashion.
 #
 # ## General treatment of `Bind` assertions
 #
-# When the gatekeeper sees a `Bind`, independently of any potential
-# `Resolve` requests, it computes an appropriate PathStep from
-# `description` pointing at `target`, and responds with a `Bound` to
-# `observer` (if supplied).
+# Certain `stepType`s have complex `PathStep`s corresponding to a given `Description`. The
+# handler for such a `stepType` watches for matching `Bind`s, independently of any potential
+# `Resolve` requests, and computes an appropriate PathStep from the `Bind`'s `description`
+# pointing at its `target`. It then responds with a `Bound` to the `Bind`'s `observer` (if
+# supplied).
 #
 Bind = <bind @description Description @target #:any @observer BindObserver> .
 Description = <<rec> @stepType symbol [@detail any]> .
