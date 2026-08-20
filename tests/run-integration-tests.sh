@@ -25,6 +25,8 @@ else
     exit 1
 fi
 
+finalstatus=0
+
 runtest() {
     testcasedir="$1"
     testcasename="$(basename "$testcasedir")"
@@ -48,6 +50,7 @@ runtest() {
         printf "ok\n"
     else
         printf "FAIL $?\n"
+        finalstatus=1
     fi
 }
 
@@ -68,3 +71,5 @@ else
         esac
     done
 fi
+
+exit $finalstatus
