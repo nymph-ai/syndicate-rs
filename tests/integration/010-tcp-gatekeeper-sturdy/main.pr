@@ -1,0 +1,21 @@
+# TCP listener sharing a dataspace with a gatekeeper and a sturdyref but no noise
+#
+# That means an unencrypted TCP session is started, then a Macaroon (the <ref ...>)
+# is mapped to a live reference, and a "ping" is sent in the clear across the TCP connection.
+
+let ?ds = dataspace
+<debug-dataspace $ds "remote-object">
+
+<bind <ref {oid: a-service, key: #"hello"}> $ds #f>
+
+let ?s = <relay-listener <tcp "127.0.0.1" 9001> $gatekeeper>
+<require-service $s>
+? <service-state $s ready> [
+  let ?r = <route [<tcp "127.0.0.1" 9001>] <ref {oid: a-service, sig: #[JTTGQeYCgohMXW/2S2XH8g]}>>
+  <q <resolve-path $r>>
+  ? <a <resolve-path $r> <ok <resolved-path _ _ ?session>>> [
+    $session += ping
+  ]
+]
+
+$ds ? ping [ $config += <pass> ]

@@ -1,0 +1,50 @@
+# TCP listener sharing a dataspace via noise
+#
+# That means:
+#  - an unencrypted TCP session is started,
+#  - then a Noise session is established,
+#  - within which a Macaroon (the <ref ...>) is mapped to a live reference,
+#  - and a "ping" is sent.
+#
+# Because the "ping" happens within the Noise session, it is encrypted across the TCP connection.
+
+# First, expose the default $gatekeeper via TCP.
+let ?listener-service-name = <relay-listener <tcp "127.0.0.1" 9001> $gatekeeper>
+<require-service $listener-service-name>
+
+# Then, create a dataspace where we will bind services to be made visible within a noise session,
+# which will in turn be made available via the default $gatekeeper.
+let ?secure-bindspace = dataspace
+# Use that dataspace as the "bindspace" for a new gatekeeper.
+<require-service <gatekeeper $secure-bindspace>>
+? <service-object <gatekeeper $secure-bindspace> ?gk> [
+  # When the gatekeeper is created, expose it on the default $gatekeeper,
+  # which has $config as its bindspace.
+  <bind <noise { key: #[z1w/OLy0wi3Veyk8/D+2182YxcrKpgc8y0ZJEBDrmWs],
+                 secretKey: #[qLkyuJw/K4yobr4XVKExbinDwEx9QTt9PfDWyx14/kg],
+                 service: secure-bindspace }>
+   $gk #f>
+]
+
+# Now create the pingable object we want to expose.
+let ?ds = dataspace
+<debug-dataspace $ds "remote-object">
+# When we get a ping, the test passes!
+$ds ? ping [ $config += <pass> ]
+
+# Switch to the secure bindspace, bind it, and switch back.
+$secure-bindspace
+<bind <ref {oid: a-service, key: #"hello"}> $ds #f>
+$config
+
+# Finally, wait for the TCP listener to be ready (avoiding races) and connect to it.
+? <service-state $listener-service-name ready> [
+  let ?r = <route [<tcp "127.0.0.1" 9001>]
+            <noise { key: #[z1w/OLy0wi3Veyk8/D+2182YxcrKpgc8y0ZJEBDrmWs],
+                     service: secure-bindspace }>
+            <ref {oid: a-service, sig: #[JTTGQeYCgohMXW/2S2XH8g]}>>
+  <q <resolve-path $r>>
+  ? <a <resolve-path $r> <ok <resolved-path _ _ ?session>>> [
+    $session += ping
+  ]
+]

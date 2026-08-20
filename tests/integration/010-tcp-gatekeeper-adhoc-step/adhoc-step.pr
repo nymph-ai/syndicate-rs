@@ -1,0 +1,13 @@
+# Install support for <adhoc any> steps.
+
+# Client-side support: allow a <route> to take <adhoc any> steps,
+# by simply relaying the step on to the remote peer and wrapping
+# the reply appropriately.
+? <q <resolve-path-step ?origin <adhoc ?label>>> [
+  $origin <resolve <adhoc $label> <* $config [
+    <rewrite ?reply <a <resolve-path-step $origin <adhoc $label>> $reply>>]>>
+]
+
+# Explicit server-side support is not required: a <bind <adhoc LABEL> REF #f>
+# to the gatekeeper's bindspace suffices.
+[]

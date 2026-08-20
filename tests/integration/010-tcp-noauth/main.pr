@@ -1,0 +1,17 @@
+# TCP listener sharing a dataspace without any authentication or gatekeeper.
+
+let ?ds = dataspace
+<debug-dataspace $ds "remote-object">
+
+let ?s = <relay-listener <tcp "127.0.0.1" 9001> $ds>
+<require-service $s>
+
+? <service-state $s ready> [
+  let ?r = <route [<tcp "127.0.0.1" 9001>]>
+  <q <resolve-path $r>>
+  ? <a <resolve-path $r> <ok <resolved-path _ _ ?session>>> [
+    $session += ping
+  ]
+]
+
+$ds ? ping [ $config += <pass> ]
