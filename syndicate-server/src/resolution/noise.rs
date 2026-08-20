@@ -16,13 +16,10 @@ use syndicate::trace::TurnCause;
 
 use syndicate::enclose;
 use syndicate_macros::during;
-use syndicate_macros::pattern;
 
-use syndicate::preserves::ExpectedKind;
 use syndicate::preserves::NoEmbeddedDomainCodec;
 use syndicate::preserves::PackedWriter;
 
-use syndicate::schemas::dataspace;
 use syndicate::schemas::gatekeeper;
 use syndicate::schemas::noise;
 use syndicate::schemas::rpc as R;
@@ -30,15 +27,15 @@ use syndicate::schemas::sturdy;
 
 use preserves_schema::Parse;
 use preserves_schema::Unparse;
-use preserves_schema::parse;
 use preserves_schema::unparse_iovalue;
 
 fn noise_step_type() -> String {
     unparse_iovalue(&noise::NoiseStepType).to_symbol().unwrap().into_owned()
 }
 
-pub fn handle_noise_binds(t: &mut Activation, bindspace: &Arc<Cap>) -> ActorResult {
-    during!(t, bindspace, <bind <noise $desc> $target $observer>, |t: &mut Activation| {
+pub fn handle_noise_bindspace(t: &mut Activation, bindspace: &Arc<Cap>) -> ActorResult {
+    // Compute the Step corresponding to the Description in a Bind.
+    enclose!((bindspace) during!(t, bindspace, <bind <#(noise::NoiseStepType.unparse()) $desc> $target $observer>, |t: &mut Activation| {
         t.spawn_link(None, move |t| {
             target.to_embedded()?;
             let observer = gatekeeper::BindObserver::parse(&observer)?;
@@ -74,28 +71,51 @@ pub fn handle_noise_binds(t: &mut Activation, bindspace: &Arc<Cap>) -> ActorResu
                         o.assert(t, &R::Result::Error(R::Error {
                             error: AnyValue::new(format!("{}", &e)) }));
                     }
-                    tracing::error!("Invalid noise bind description: {}", e);
                 }
             }
             Ok(())
         });
         Ok(())
-    });
-    Ok(())
-}
+    }));
 
-pub fn take_noise_step(t: &mut Activation, bindspace: &mut Arc<Cap>, a: &gatekeeper::Resolve, detail: &mut &'static str) -> Result<bool, ActorError> {
-    if a.step.step_type == noise_step_type() {
-        *detail = "invalid";
-        if let Ok(s) = noise::NoiseStepDetail::parse(&a.step.detail) {
-            t.facet(|t| {
-                let f = super::handle_direct_resolution(bindspace, t, a.clone())?;
-                await_bind_noise(bindspace, t, s.0.0, a.observer.clone(), f)
-            })?;
-            return Ok(true);
+    // Reply to Resolve requests. This involves starting a Noise responder session.
+    enclose!((bindspace) during!(t, bindspace, <resolve <#(noise::NoiseStepType.unparse()) $step> $observer:Arc<Cap>>, |t: &mut Activation| {
+        match noise::NoiseStepDetail::parse(&step) {
+            Err(_) => {
+                observer.assert(t, &R::Error{ error: AnyValue::symbol("invalid") });
+            }
+            Ok(step) => {
+                // TODO: codegen plugin to generate pattern constructors
+                let service_selector = step.0.0;
+                enclose!((bindspace)
+                         during!(t, bindspace,
+                                 <bind <#(noise::NoiseStepType.unparse()) $spec:noise::NoiseServiceSpec{
+                                     { service: #(&service_selector) }
+                                 }> $service:Arc<Cap> _>,
+                                 |t: &mut Activation| {
+                                     match validate_noise_service_spec(spec) {
+                                         Err(_) => {
+                                             observer.assert(t, &R::Result::Error(R::Error {
+                                                 error: AnyValue::symbol("noise-service-spec-failed-validation"),
+                                             }));
+                                         }
+                                         Ok(spec) => {
+                                             let hs = make_handshake(&spec, false)?;
+                                             let responder_session = Cap::guard(t.create(
+                                                 ResponderState::Introduction{ service, hs }));
+                                             observer.assert(t, &R::Result::Ok(R::Ok {
+                                                 value: responder_session.unparse(),
+                                             }));
+                                         }
+                                     }
+                                     Ok(())
+                                 }));
+            }
         }
-    }
-    Ok(false)
+        Ok(())
+    }));
+
+    Ok(())
 }
 
 struct ValidatedNoiseSpec {
@@ -160,40 +180,6 @@ fn validate_noise_service_spec(
         noise::SecretKeyField::Absent => None,
     };
     Ok(ValidatedNoiseSpec { secret_key, .. v })
-}
-
-fn await_bind_noise(
-    bindspace: &mut Arc<Cap>,
-    t: &mut Activation,
-    service_selector: AnyValue,
-    observer: Arc<Cap>,
-    direct_resolution_facet: FacetId,
-) -> ActorResult {
-    let handler = syndicate::entity(())
-        .on_asserted_facet(move |_state, t, a: AnyValue| {
-            t.stop_facet(direct_resolution_facet);
-            let observer = Arc::clone(&observer);
-            t.spawn_link(None, move |t| {
-                let bindings = a.collect_sequence().ok_or(ExpectedKind::Sequence)?;
-                let spec = validate_noise_service_spec(parse(&bindings[0])?)?;
-                let service = bindings[1].to_embedded()?.into_owned();
-                let hs = make_handshake(&spec, false)?;
-                let responder_session = Cap::guard(t.create(
-                    ResponderState::Introduction{ service, hs }));
-                observer.assert(t, &R::Result::Ok(R::Ok { value: AnyValue::embedded(responder_session) }));
-                Ok(())
-            });
-            Ok(())
-        })
-        .create_cap(t);
-    bindspace.assert(t, &dataspace::Observe {
-        // TODO: codegen plugin to generate pattern constructors
-        pattern: pattern!{
-            <bind <noise $spec:NoiseServiceSpec{ { service: #(&service_selector) } }> $service _>
-        },
-        observer: handler,
-    });
-    Ok(())
 }
 
 type NoiseHandshakeState = noise_protocol::HandshakeState<X25519, ChaCha20Poly1305, Blake2s>;
@@ -457,7 +443,7 @@ fn make_handshake(
 // resolution request on to the origin each time.
 pub fn handle_noise_path_steps(t: &mut Activation, ds: Arc<Cap>) -> ActorResult {
     during!(t, ds,
-            <q <resolve-path-step $origin <noise $spec0>>>,
+            <q <resolve-path-step $origin <#(noise::NoiseStepType.unparse()) $spec0>>>,
             enclose!((ds) move |t: &mut Activation| {
                 if let Ok(spec) = noise::NoiseSpec::parse(&spec0) {
                     if let Some(origin) = origin.as_embedded() {

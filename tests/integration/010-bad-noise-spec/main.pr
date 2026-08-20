@@ -1,0 +1,15 @@
+# Noise service spec validation failure.
+# Reported in two places:
+#  - in the Bound reply to the bind
+#  - in the resolve reply
+
+<bind <noise { key: #[z1w/OLy0wi3Veyk8/D+2182YxcrKpgc8y0ZJEBDrmWs],
+               secretKey: not-a-valid-secretKey,
+               service: secure-bindspace }>
+   $config <* $config [<rewrite ?x <bound-was $x>>]>>
+
+? <bound-was <error "Invalid secret key not-a-valid-secretKey">> [
+  ? <reply-was <error noise-service-spec-failed-validation>> [<pass>]
+]
+
+$gatekeeper += <resolve <noise secure-bindspace> <* $config [<rewrite ?x <reply-was $x>>]>>

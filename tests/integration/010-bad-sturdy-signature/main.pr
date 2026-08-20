@@ -1,0 +1,11 @@
+# Corrupted/invalid `sig` in a sturdyref gets rejected.
+
+<bind <ref {oid: a-service, key: #"hello"}> $config #f>
+
+? <reply-was <error sturdyref-failed-validation>> [<pass>]
+
+$gatekeeper += <resolve <ref {
+  oid: a-service,
+  # the sig below should be JTTG...
+  sig: #[KTTGQeYCgohMXW/2S2XH8g]
+}> <* $config [<rewrite ?x <reply-was $x>>]>>

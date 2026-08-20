@@ -1,0 +1,5 @@
+# Invalid Description in a sturdy bind.
+
+<bind <ref bogus> $config <* $config [<rewrite ?x <bound-was $x>>]>>
+
+? <bound-was <error sturdyref-description-invalid>> [<pass>]

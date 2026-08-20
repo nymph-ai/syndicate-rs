@@ -1,4 +1,5 @@
-# TCP listener sharing a dataspace with a gatekeeper and a sturdyref but no noise
+# The file adhoc-step.pr introduces a new kind of stepType, <adhoc LABEL>.
+# Here, we try it out.
 
 let ?ds = dataspace
 <debug-dataspace $ds "remote-object">
@@ -7,12 +8,6 @@ let ?s = <relay-listener <tcp "127.0.0.1" 9001> $gatekeeper>
 <require-service $s>
 
 <bind <adhoc foo> $ds #f>
-
-# ? <q <resolve-path-step ?origin <adhoc ?adhoc>>> [
-#   let ?k = dataspace
-#   $config <debug-dataspace $k "K">
-#   $origin += <resolve <adhoc $adhoc> $k>
-# ]
 
 ? <service-state $s ready> [
   let ?r = <route [<tcp "127.0.0.1" 9001>] <adhoc foo>>

@@ -1,13 +1,10 @@
 use std::sync::Arc;
 
+use syndicate::enclose;
 use syndicate::actor::*;
 
 use syndicate_macros::during;
-use syndicate_macros::pattern;
 
-use syndicate::preserves::ExpectedKind;
-
-use syndicate::schemas::dataspace;
 use syndicate::schemas::gatekeeper;
 use syndicate::schemas::sturdy;
 use syndicate::schemas::rpc as R;
@@ -20,80 +17,74 @@ fn sturdy_step_type() -> String {
     unparse_iovalue(&sturdy::SturdyStepType).to_symbol().unwrap().into_owned()
 }
 
-pub fn handle_sturdy_binds(t: &mut Activation, bindspace: &Arc<Cap>) -> ActorResult {
-    during!(t, bindspace, <bind <ref $desc> $target $observer>, |t: &mut Activation| {
+pub fn handle_sturdy_bindspace(t: &mut Activation, bindspace: &Arc<Cap>) -> ActorResult {
+    // Compute the Step corresponding to the Description in a Bind.
+    enclose!((bindspace) during!(t, bindspace, <bind <#(sturdy::SturdyStepType.unparse()) $desc> $_target:Arc<Cap> $observer>, |t: &mut Activation| {
         t.spawn_link(None, move |t| {
-            target.to_embedded()?;
-            let observer = gatekeeper::BindObserver::parse(&observer)?;
-            let desc = sturdy::SturdyDescriptionDetail::parse(&desc)?;
-            let sr = sturdy::SturdyRef::mint(desc.oid, &desc.key);
-            if let gatekeeper::BindObserver::Present(o) = observer {
-                o.assert(t, &gatekeeper::Bound::Bound {
-                    path_step: gatekeeper::PathStep {
-                        step_type: sturdy_step_type(),
-                        detail: sr.parameters.unparse(),
-                    },
-                });
+            let response = match sturdy::SturdyDescriptionDetail::parse(&desc) {
+                Ok(desc) => {
+                    let sr = sturdy::SturdyRef::mint(desc.oid, &desc.key);
+                    gatekeeper::Bound::Bound {
+                        path_step: gatekeeper::PathStep {
+                            step_type: sturdy_step_type(),
+                            detail: sr.parameters.unparse(),
+                        },
+                    }
+                }
+                Err(_) => gatekeeper::Bound::Error(R::Error{
+                    error: AnyValue::symbol("sturdyref-description-invalid")
+                }),
+            };
+            if let Ok(gatekeeper::BindObserver::Present(o)) = gatekeeper::BindObserver::parse(&observer) {
+                o.assert(t, &response);
             }
             Ok(())
         });
         Ok(())
-    });
-    Ok(())
-}
+    }));
 
-pub fn take_sturdy_step(t: &mut Activation, bindspace: &mut Arc<Cap>, a: &gatekeeper::Resolve, detail: &mut &'static str) -> Result<bool, ActorError> {
-    if a.step.step_type == sturdy_step_type() {
-        *detail = "invalid";
-        if let Ok(s) = sturdy::SturdyStepDetail::parse(&a.step.detail) {
-            t.facet(|t| {
-                let f = super::handle_direct_resolution(bindspace, t, a.clone())?;
-                await_bind_sturdyref(bindspace, t, sturdy::SturdyRef { parameters: s.0 }, a.observer.clone(), f)
-            })?;
-            return Ok(true);
-        }
-    }
-    Ok(false)
-}
-
-fn await_bind_sturdyref(
-    bindspace: &mut Arc<Cap>,
-    t: &mut Activation,
-    sturdyref: sturdy::SturdyRef,
-    observer: Arc<Cap>,
-    direct_resolution_facet: FacetId,
-) -> ActorResult {
-    let queried_oid = sturdyref.parameters.oid.clone();
-    let handler = syndicate::entity(observer)
-        .on_asserted(move |observer, t, a: AnyValue| {
-            t.stop_facet(direct_resolution_facet);
-            let bindings = a.collect_sequence().ok_or(ExpectedKind::Sequence)?;
-            let key = bindings[0].to_bytestring()?;
-            let unattenuated_target = bindings[1].to_embedded()?;
-            match sturdyref.validate_and_attenuate(key.as_ref(), unattenuated_target.as_ref()) {
-                Err(e) => {
-                    tracing::warn!(sturdyref = ?sturdyref.unparse(),
-                                   "sturdyref failed validation: {}", e);
-                    observer.assert(t, &R::Result::Error(R::Error {
-                        error: AnyValue::symbol("sturdyref-failed-validation"),
-                    }));
-                },
-                Ok(target) => {
-                    tracing::trace!(sturdyref = ?sturdyref.unparse(),
-                                    ?target,
-                                    "sturdyref resolved");
-                    observer.assert(t, &R::Result::Ok(R::Ok {
-                        value: AnyValue::embedded(target),
-                    }));
-                }
+    // Reply to Resolve requests.
+    enclose!((bindspace) during!(t, bindspace, <resolve <#(sturdy::SturdyStepType.unparse()) $step> $observer:Arc<Cap>>, |t: &mut Activation| {
+        match sturdy::SturdyStepDetail::parse(&step) {
+            Err(_) => {
+                observer.assert(t, &R::Error{ error: AnyValue::symbol("invalid") });
             }
-            Ok(None)
-        })
-        .create_cap(t);
-    bindspace.assert(t, &dataspace::Observe {
-        // TODO: codegen plugin to generate pattern constructors
-        pattern: pattern!{<bind <ref { oid: #(&queried_oid), key: $ }> $ _>},
-        observer: handler,
-    });
+            Ok(step) => {
+                // TODO: codegen plugin to generate pattern constructors
+                let queried_oid = step.0.oid.clone();
+                let sturdyref = sturdy::SturdyRef { parameters: step.0 };
+                enclose!((bindspace)
+                         during!(t, bindspace,
+                                 <bind <#(sturdy::SturdyStepType.unparse()) {
+                                     oid: #(&queried_oid),
+                                     key: $key
+                                 }> $unattenuated_target: Arc<Cap> _>,
+                                 |t: &mut Activation| {
+                                     if let Some(key) = key.as_bytestring() {
+                                         match sturdyref.validate_and_attenuate(key.as_ref(), &unattenuated_target) {
+                                             Err(e) => {
+                                                 tracing::warn!(sturdyref = ?sturdyref.unparse(),
+                                                                "sturdyref failed validation: {}", e);
+                                                 observer.assert(t, &R::Result::Error(R::Error {
+                                                     error: AnyValue::symbol("sturdyref-failed-validation"),
+                                                 }));
+                                             },
+                                             Ok(target) => {
+                                                 tracing::trace!(sturdyref = ?sturdyref.unparse(),
+                                                                 ?target,
+                                                                 "sturdyref resolved");
+                                                 observer.assert(t, &R::Result::Ok(R::Ok {
+                                                     value: target.unparse(),
+                                                 }));
+                                             }
+                                         }
+                                     }
+                                     Ok(())
+                                 }));
+            }
+        }
+        Ok(())
+    }));
+
     Ok(())
 }

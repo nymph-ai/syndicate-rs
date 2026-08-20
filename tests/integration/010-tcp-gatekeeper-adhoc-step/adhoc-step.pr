@@ -8,6 +8,9 @@
     <rewrite ?reply <a <resolve-path-step $origin <adhoc $label>> $reply>>]>>
 ]
 
-# Explicit server-side support is not required: a <bind <adhoc LABEL> REF #f>
-# to the gatekeeper's bindspace suffices.
-[]
+# Server-side support: reply to <resolve> by looking up <bind>.
+? <resolve <adhoc ?label> ?k> [
+  ? <bind <adhoc $label> ?target _> [
+    $k += <ok $target>
+  ]
+]
