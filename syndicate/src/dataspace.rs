@@ -20,6 +20,12 @@ pub trait AsDataspacePattern {
     fn wildcard_dataspace_pattern() -> super::schemas::dataspace_patterns::Pattern;
 }
 
+impl AsDataspacePattern for AnyValue {
+    fn wildcard_dataspace_pattern() -> super::schemas::dataspace_patterns::Pattern {
+        super::schemas::dataspace_patterns::Pattern::Discard
+    }
+}
+
 impl<T: AsDataspacePattern> AsDataspacePattern for std::sync::Arc<T> {
     fn wildcard_dataspace_pattern() -> super::schemas::dataspace_patterns::Pattern {
         T::wildcard_dataspace_pattern()
