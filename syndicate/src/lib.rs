@@ -11,6 +11,7 @@ pub mod actor;
 pub mod bag;
 pub mod dataflow;
 pub mod dataspace;
+pub mod dataspace_patterns;
 pub mod during;
 pub mod error;
 #[doc(hidden)]

@@ -2539,7 +2539,7 @@ impl Cap {
     }
 }
 
-impl super::dataspace::AsDataspacePattern for Cap {
+impl super::dataspace_patterns::AsDataspacePattern for Cap {
     fn wildcard_dataspace_pattern() -> super::schemas::dataspace_patterns::Pattern {
         super::schemas::dataspace_patterns::Pattern::Discard
     }

@@ -36,7 +36,7 @@ pub fn to_pattern_expr(stx: &Stx) -> Result<TokenStream2, &'static str> {
             let inner_pat_expr = match maybe_pat {
                 Some(p) => to_pattern_expr(&*p)?,
                 None => match maybe_ty {
-                    Some(ty) => quote!(<#ty as syndicate::dataspace::AsDataspacePattern>::wildcard_dataspace_pattern()),
+                    Some(ty) => quote!(<#ty as syndicate::dataspace_patterns::AsDataspacePattern>::wildcard_dataspace_pattern()),
                     None => to_pattern_expr(&Stx::Discard)?,
                 }
             };
