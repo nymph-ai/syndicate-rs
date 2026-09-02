@@ -254,6 +254,9 @@ pub fn pattern(src: proc_macro::TokenStream) -> proc_macro::TokenStream {
 #[proc_macro]
 pub fn during(src: proc_macro::TokenStream) -> proc_macro::TokenStream {
     dur::during(src)
+    // let out = dur::during(src.clone());
+    // println!("\n{:#} -->\n{:#}\n", &src, &out);
+    // out
 }
 
 #[proc_macro]
