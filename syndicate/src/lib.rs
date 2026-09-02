@@ -34,7 +34,7 @@ pub mod trace;
 pub use during::entity;
 
 /// Retrieve a string representing the current time, expressed in the timestamp format from the
-/// tai64n program, https://cr.yp.to/daemontools/tai64n.html.
+/// tai64n program, <https://cr.yp.to/daemontools/tai64n.html>.
 pub fn tai64n_label() -> String {
     use std::fmt::Write;
     let now = tai64::Tai64N::now();
