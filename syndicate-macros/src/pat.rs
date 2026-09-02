@@ -11,7 +11,7 @@ use crate::val::to_value_expr;
 use crate::val::value_to_value_expr;
 
 pub fn lit<T: ToTokens>(e: T) -> TokenStream2 {
-    quote!(syndicate::pattern::lift_literal(#e))
+    quote!(syndicate::pattern::lift_literal(& #e))
 }
 
 fn compile_sequence_members(stxs: &Vec<Stx>) -> Result<Vec<TokenStream2>, &'static str> {
