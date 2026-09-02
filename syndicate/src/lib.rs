@@ -112,3 +112,65 @@ mod protocol_test {
         println!("{:?}", packet);
     }
 }
+
+/// A convenient way of starting a service that communicates using
+/// Syndicate protocol over its stdio.
+///
+/// Expands into a use of `#[tokio:main] async fn main() ...` containing a
+/// call to [`stdio_service`][crate::relay::stdio_service], creating a new
+/// dataspace and installing a `during!` handler for each pattern/body
+/// clause given to `stdio_service!`. The created dataspace is installed as
+/// the [service
+/// object](https://synit.org/book/operation/service.html#service-object)
+/// for peers to use to access the service.
+///
+/// The expanded code includes these `use` statements, meaning that e.g.
+/// all of `syndicate::actor::*` is in scope for each `$body`:
+///
+/// ```
+/// use std::sync::Arc;
+/// use syndicate::actor::*;
+/// use syndicate::enclose;
+/// ```
+///
+/// ### Example
+///
+/// This is a complete program. (It is included as an example in the
+/// `syndicate-macros` crate, as `examples/stdio-ds.rs`.)
+///
+/// ```ignore (needs syndicate_macros, which this crate cannot depend on)
+/// syndicate::stdio_service!{
+///     ($v: AnyValue) => |t| {
+///         t.on_stop(enclose!((v) move |_t| { tracing::info!("- {v:?}"); Ok(()) }));
+///         tracing::info!("+ {v:?}");
+///         Ok(())
+///     };
+/// }
+/// ```
+///
+#[macro_export]
+macro_rules! stdio_service {
+    ( $( ( $($pat:tt)+ ) => | $t:ident | $body:expr ;)* ) => {
+        #[tokio::main]
+        async fn main() -> syndicate::actor::ActorResult {
+            use std::sync::Arc;
+            use syndicate::actor::*;
+            use syndicate::enclose;
+
+            syndicate::convenient_logging()?;
+            syndicate::relay::stdio_service(|t| {
+                let service_object = syndicate::actor::Cap::new(&t.create(
+                    syndicate::dataspace::Dataspace::new(
+                        Some(syndicate::actor::AnyValue::symbol("service")))));
+                $(
+                    syndicate_macros::during!(
+                        t, service_object, $($pat)+,
+                        move |$t: &mut syndicate::actor::Activation| {
+                            $body
+                        });
+                )*
+                Ok(service_object)
+            }).await
+        }
+    };
+}
