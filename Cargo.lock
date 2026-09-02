@@ -1900,7 +1900,7 @@ dependencies = [
 
 [[package]]
 name = "syndicate"
-version = "0.44.0-rc.5"
+version = "0.44.0-rc.6"
 dependencies = [
  "blake2",
  "bytes",
@@ -1924,7 +1924,7 @@ dependencies = [
 
 [[package]]
 name = "syndicate-macros"
-version = "0.35.0-rc.3"
+version = "0.35.0-rc.4"
 dependencies = [
  "proc-macro2",
  "quote",
