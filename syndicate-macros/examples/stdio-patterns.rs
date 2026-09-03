@@ -34,8 +34,8 @@ fn show<T: std::fmt::Debug + Sync + Send + Clone + 'static>(
 }
 
 syndicate::stdio_service!{
-    ($v) => |t| show(t, "\nAnyValue (1)", v);
-    ($v: AnyValue) => |t| show(t, "AnyValue (2)", v);
+    ($v) => |t| show(t, "--------------------", v);
+    ($v: AnyValue) => |t| show(t, "AnyValue", v);
     ($v: Embedded<Arc<Cap>>) => |t| show(t, "Embedded<Arc<Cap>>", v);
     ($v: Arc<Cap>) => |t| show(t, "Arc<Cap>", v);
     ($v: Double) => |t| show(t, "Double", v);
