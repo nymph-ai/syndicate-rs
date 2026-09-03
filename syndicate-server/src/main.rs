@@ -1,3 +1,5 @@
+use syndicate_server::*;
+
 use services::gatekeeper;
 
 use std::convert::TryInto;
@@ -19,22 +21,9 @@ use syndicate::preserves::Map;
 
 use preserves_schema::Unparse;
 
-mod counter;
-mod dependencies;
-mod http;
-mod lifecycle;
-mod protocol;
-mod resolution;
-mod script;
-mod services;
-
 #[cfg(feature = "jemalloc")]
 #[global_allocator]
 static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
-
-mod schemas {
-    include!(concat!(env!("OUT_DIR"), "/src/schemas/mod.rs"));
-}
 
 use schemas::internal_services;
 

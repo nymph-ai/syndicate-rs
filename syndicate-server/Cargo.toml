@@ -11,6 +11,12 @@ edition.workspace = true
 
 default-run = "syndicate-server"
 
+[lib]
+name = "syndicate_server"
+
+[[bin]]
+name = "syndicate-server"
+
 [features]
 jemalloc = ["dep:tikv-jemallocator"]
 
