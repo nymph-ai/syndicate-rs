@@ -768,9 +768,9 @@ dependencies = [
 
 [[package]]
 name = "glob"
-version = "0.3.3"
+version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0cc23270f6e1808e30a928bdc84dea0b9b4136a8bc82338574f23baf47bbd280"
+checksum = "e4eba85ea1d0a966a983acd07deee566e67395d2d96b6fb39e62b5a833f1eb0b"
 
 [[package]]
 name = "half"
@@ -1520,9 +1520,9 @@ dependencies = [
 
 [[package]]
 name = "preserves"
-version = "5.0.0-rc.9"
+version = "5.0.0-rc.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1744472828457c7260adf8be312e21286e16b77a270a5846ff207f39b50f2539"
+checksum = "a09e9ff7936d8ee550d7295e80105a13da705556bc8f17e88608883203226e96"
 dependencies = [
  "base64",
  "bytemuck",
@@ -1535,9 +1535,9 @@ dependencies = [
 
 [[package]]
 name = "preserves-schema"
-version = "6.0.0-rc.9"
+version = "6.0.0-rc.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "24381930402e5e4aa6247167c8046160a9ee3b1277318c715de19695e0f365d3"
+checksum = "032247dc7fccb0c7c902fec138a1333b24de883dbd75f0519a6cbe638b51d885"
 dependencies = [
  "convert_case",
  "glob",
