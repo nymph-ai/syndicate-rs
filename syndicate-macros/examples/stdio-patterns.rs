@@ -21,9 +21,7 @@ Try
 
 */
 
-use syndicate::enclose;
-use syndicate::actor::*;
-use syndicate::preserves::*;
+use preserves::*;
 
 fn show<T: std::fmt::Debug + Sync + Send + Clone + 'static>(
     t: &mut Activation,

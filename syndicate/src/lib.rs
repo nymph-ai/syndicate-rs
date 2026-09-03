@@ -115,23 +115,36 @@ mod protocol_test {
 }
 
 /// A convenient way of starting a service that communicates using
-/// Syndicate protocol over its stdio.
+/// Syndicate protocol over standard input and standard
+/// output.[^feeble-imitation]
 ///
 /// Expands into a use of `#[tokio:main] async fn main() ...` containing a
 /// call to [`stdio_service`][crate::relay::stdio_service], creating a new
-/// dataspace and installing a `during!` handler for each pattern/body
-/// clause given to `stdio_service!`. The created dataspace is installed as
-/// the [service
+/// dataspace and installing a `during!` handler (defined in the
+/// syndicate-macros crate) for each pattern/body
+/// clause. The created dataspace is installed as the
+/// [service
 /// object](https://synit.org/book/operation/service.html#service-object)
 /// for peers to use to access the service.
 ///
-/// The expanded code includes these `use` statements, meaning that e.g.
-/// all of `syndicate::actor::*` is in scope for each `$body`:
+/// [^feeble-imitation]: In many ways, this macro is a feeble imitation of
+///     a Racket
+///     [`#lang`](https://docs.racket-lang.org/guide/Module_Syntax.html#%28part._hash-lang%29).
+///
+/// ### Convenience toplevel `use` declarations
+///
+/// The expanded code includes these `use` statements *at toplevel*,
+/// meaning that e.g. all of `syndicate::actor::*` and all the macros from
+/// the `syndicate_macros` crate are in scope for all the code in the
+/// module, not just the `$pat`s and `$body`s:
 ///
 /// ```
 /// use std::sync::Arc;
 /// use syndicate::actor::*;
+/// use syndicate::dataspace::Dataspace;
 /// use syndicate::enclose;
+/// use syndicate::preserves;
+/// use syndicate_macros::*;
 /// ```
 ///
 /// ### Example
@@ -151,13 +164,20 @@ mod protocol_test {
 ///
 #[macro_export]
 macro_rules! stdio_service {
-    ( $( ( $($pat:tt)+ ) => | $t:ident | $body:expr ;)* ) => {
+    {
+        $(
+            ( $($pat:tt)+ ) => |$t:ident| $body:expr ;
+        )*
+    } => {
+        use std::sync::Arc;
+        use syndicate::actor::*;
+        use syndicate::dataspace::Dataspace;
+        use syndicate::enclose;
+        use syndicate::preserves;
+        use syndicate_macros::*;
+
         #[tokio::main]
         async fn main() -> syndicate::actor::ActorResult {
-            use std::sync::Arc;
-            use syndicate::actor::*;
-            use syndicate::enclose;
-
             syndicate::convenient_logging()?;
             syndicate::relay::stdio_service(|t| {
                 let service_object = syndicate::actor::Cap::new(&t.create(
