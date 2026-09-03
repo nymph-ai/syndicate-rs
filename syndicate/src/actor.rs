@@ -16,6 +16,7 @@ use super::schemas::protocol;
 use super::schemas::sturdy;
 use super::trace;
 
+use arc_swap::ArcSwapOption;
 use parking_lot::Mutex;
 use parking_lot::RwLock;
 
@@ -463,6 +464,43 @@ pub struct Facet {
     pub inert_check_preventers: Arc<AtomicU64>,
 }
 
+pub trait Metadata: Any + std::fmt::Debug + Send + Sync {
+    fn as_any(&self) -> &dyn Any;
+}
+impl<T: Any + std::fmt::Debug + Send + Sync> Metadata for T {
+    fn as_any(&self) -> &dyn Any { self }
+}
+
+#[derive(Default,Clone)]
+pub struct MetadataBox(pub Arc<ArcSwapOption<Box<dyn Metadata>>>);
+
+impl MetadataBox {
+    /// Construct a new, empty MetadataBox.
+    pub fn new() -> Self {
+        Default::default()
+    }
+
+    /// Stores `t` in `self`.
+    pub fn store<T: Metadata>(&self, t: Option<T>) {
+        self.0.store(t.map(|v| Arc::new(Box::new(v) as Box<dyn Metadata>)))
+    }
+
+    /// Calls `f` with the contents of `self`, still in `Metadata` form.
+    pub fn with_load<R, F: FnOnce(Option<&dyn Metadata>) -> R>(&self, f: F) -> R {
+        f(self.0.load().as_ref().and_then(|x| Some(x.as_ref().as_ref())))
+    }
+
+    /// Calls `f` with the contents of `self`, downcast to `T`.
+    pub fn with_load_as<T: Metadata, R, F: FnOnce(Option<&T>) -> R>(&self, f: F) -> R {
+        self.with_load(|md| f(md.and_then(|m| m.as_any().downcast_ref::<T>())))
+    }
+
+    /// If `self` contains a value that can be downcast to `T`, calls `f` with that value.
+    pub fn if_load<T: Metadata, R, F: FnOnce(&T) -> R>(&self, f: F) -> Option<R> {
+        self.with_load(|md| md.and_then(|m| m.as_any().downcast_ref::<T>().map(f)))
+    }
+}
+
 /// A reference to an object that expects messages/assertions of type
 /// `M`.
 ///
@@ -475,6 +513,7 @@ pub struct Ref<M> {
     pub facet_id: FacetId,
     /// Mutex owning and guarding the state backing the referenced entity.
     pub target: Mutex<Option<Box<dyn Entity<M>>>>,
+    metadata_box: MetadataBox,
 }
 
 /// Specialization of `Ref<M>` for messages/assertions of type
@@ -1261,6 +1300,7 @@ impl Activation {
             mailbox: self.mailbox(),
             facet_id: self.facet_id(),
             target: Mutex::new(None),
+            metadata_box: Default::default(),
         })
     }
 
@@ -1425,6 +1465,7 @@ impl Activation {
                 mailbox: state.mailbox(),
                 facet_id: state.root,
                 target: Mutex::new(Some(target)),
+                metadata_box: Default::default(),
             })),
         };
         drop(g);
@@ -2414,6 +2455,10 @@ impl<M> Ref<M> {
         *g = Some(Box::new(e));
     }
 
+    pub fn metadata_box(&self) -> &MetadataBox {
+        return &self.metadata_box
+    }
+
     fn internal_with_entity<R, F: FnOnce(&mut dyn Entity<M>) -> R>(&self, f: F) -> R {
         let mut g = self.target.lock();
         // let _entry = tracing::info_span!("entity", r = ?self).entered();
@@ -2429,7 +2474,14 @@ impl<M> Ref<M> {
     }
 
     pub fn debug_str(&self) -> String {
-        format!("{}/{}:{:016x}", self.mailbox.actor_id, self.facet_id, self.oid())
+        let mut base = format!("{}/{}:{:016x}", self.mailbox.actor_id, self.facet_id, self.oid());
+        self.metadata_box.with_load(|md| {
+            if let Some(m) = md  {
+                use std::fmt::Write;
+                write!(base, ":{:?}", m).unwrap();
+            }
+        });
+        base
     }
 }
 
@@ -2478,6 +2530,7 @@ impl Cap {
         Self::new(&Arc::new(Ref {
             mailbox: Arc::clone(&underlying.mailbox),
             facet_id: underlying.facet_id,
+            metadata_box: underlying.metadata_box.clone(),
             target: Mutex::new(Some(Box::new(Guard { underlying }))),
         }))
     }
@@ -2545,14 +2598,16 @@ impl Cap {
         t.sync(&self.underlying, peer)
     }
 
+    pub fn metadata_box(&self) -> &MetadataBox {
+        self.underlying.metadata_box()
+    }
+
     pub fn debug_str(&self) -> String {
         if self.attenuation.is_empty() {
             self.underlying.debug_str()
         } else {
-            format!("{}/{}:{:016x}\\{:?}",
-                    self.underlying.mailbox.actor_id,
-                    self.underlying.facet_id,
-                    self.underlying.oid(),
+            format!("{}\\{:?}",
+                    self.underlying.debug_str(),
                     self.attenuation)
         }
     }

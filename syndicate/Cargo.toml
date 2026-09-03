@@ -25,6 +25,7 @@ preserves-schema.workspace = true
 
 tokio = { workspace = true, features = ["io-std", "io-util", "macros", "rt", "rt-multi-thread", "time"] }
 tokio-util.workspace = true
+arc-swap.workspace = true
 bytes.workspace = true
 parking_lot.workspace = true
 futures.workspace = true

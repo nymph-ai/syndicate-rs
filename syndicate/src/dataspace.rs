@@ -29,7 +29,9 @@ pub struct Dataspace {
 
 impl Dataspace {
     pub fn new(turn: &mut Activation, name: Name) -> std::sync::Arc<Cap> {
-        Cap::new(&turn.create_ref(Self::new_entity(name)))
+        let c = Cap::new(&turn.create_ref(Self::new_entity(name.clone())));
+        c.metadata_box().store(name);
+        c
     }
 
     /// Construct a new, empty dataspace entity.
