@@ -1909,7 +1909,7 @@ dependencies = [
 
 [[package]]
 name = "syndicate"
-version = "0.44.0-rc.8"
+version = "0.44.0-rc.9"
 dependencies = [
  "arc-swap",
  "blake2",
