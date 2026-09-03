@@ -110,8 +110,8 @@ async fn main() -> ActorResult {
         .transpose()?;
 
     Actor::top(trace_collector, move |t| {
-        let server_config_ds = Cap::new(&t.create(Dataspace::new(Some(AnyValue::symbol("config")))));
-        let log_ds = Cap::new(&t.create(Dataspace::new(Some(AnyValue::symbol("log")))));
+        let server_config_ds = Dataspace::new(t, Some(AnyValue::symbol("config")));
+        let log_ds = Dataspace::new(t, Some(AnyValue::symbol("log")));
 
         if config.inferior {
             tracing::info!("inferior server instance");
@@ -131,7 +131,7 @@ async fn main() -> ActorResult {
         env.insert("gatekeeper".to_owned(), AnyValue::embedded(Arc::clone(&gatekeeper)));
 
         if config.control {
-            env.insert("control".to_owned(), AnyValue::embedded(Cap::guard(t.create(
+            env.insert("control".to_owned(), AnyValue::embedded(t.create_cap(
                 syndicate::entity(())
                     .on_message(|_, _t, m: crate::schemas::control::ExitServer| {
                         tracing::info!("$control received exit request with code {}", m.code);
@@ -141,7 +141,7 @@ async fn main() -> ActorResult {
                                 m.code);
                             1
                         }))
-                    })))));
+                    }))));
         }
 
         dependencies::boot(t, Arc::clone(&server_config_ds));

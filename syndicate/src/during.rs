@@ -166,10 +166,10 @@ where
         }
     }
 
-    pub fn create(self, t: &mut Activation) -> Arc<Ref<M>> {
+    pub fn create_ref(self, t: &mut Activation) -> Arc<Ref<M>> {
         let should_register_stop_action = self.stop_handler.is_some();
         let should_register_exit_hook = self.exit_handler.is_some();
-        let r = t.create(self);
+        let r = t.create_ref(self);
         if should_register_stop_action {
             t.on_stop_notify(&r);
         }
@@ -190,7 +190,7 @@ where
 {
     pub fn create_cap(self, t: &mut Activation) -> Arc<Cap>
     {
-        Cap::new(&self.create(t))
+        Cap::new(&self.create_ref(t))
     }
 }
 

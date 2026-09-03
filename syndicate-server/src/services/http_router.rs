@@ -347,7 +347,7 @@ impl Entity<http::HttpContext<Arc<Cap>>> for HttpStaticFileServer {
 }
 
 fn run_static_file_server(t: &mut Activation, ds: Arc<Cap>, spec: HttpStaticFileServer) -> ActorResult {
-    let object = Cap::guard(t.create(spec.clone()));
+    let object = t.create_cap(spec.clone());
     ds.assert(t, &syndicate::schemas::service::ServiceObject {
         service_name: spec.unparse(),
         object: AnyValue::embedded(object),

@@ -92,7 +92,7 @@ async fn main() -> ActorResult {
             (n_rounds as u64, n_actors)
         };
 
-        let me = t.create(Supervisor {
+        let me = t.create_ref(Supervisor {
             latency_mode,
             total_transfers,
             remaining_to_receive: injection_count,

@@ -981,7 +981,7 @@ impl Activation {
 
     fn half_link(&mut self, t_other: &mut Activation) -> Handle {
         let this_actor_id = self.actor_id;
-        let entity_ref = t_other.create::<AnyValue, _>(StopOnRetract);
+        let entity_ref = t_other.create_ref::<AnyValue, _>(StopOnRetract);
         let handle = next_handle();
         assert!(self.insert_outbound_assertion(&entity_ref, handle, self.turn_description.as_ref().map(
             enclose!((entity_ref) move |_| trace::TargetedTurnEvent {
@@ -1216,21 +1216,47 @@ impl Activation {
         tracing::trace!("Activation::rollback complete");
     }
 
-    /// Construct an entity with behaviour [`InertEntity`] within the active facet.
-    pub fn inert_entity<M>(&mut self) -> Arc<Ref<M>> {
-        self.create(InertEntity)
+    /// Construct an entity with behaviour [`InertEntity`] within the active facet, as a [`Ref`].
+    pub fn inert_entity_ref<M>(&mut self) -> Arc<Ref<M>> {
+        self.create_ref(InertEntity)
     }
 
-    /// Construct an entity with behaviour `e` within the active facet.
-    pub fn create<M, E: Entity<M> + Send + 'static>(&mut self, e: E) -> Arc<Ref<M>> {
-        let r = self.create_inert();
+    /// Construct an entity with behaviour [`InertEntity`] within the active facet, as a [`Ref`].
+    pub fn inert_entity_cap(&mut self) -> Arc<Cap> {
+        self.create_anycap(InertEntity)
+    }
+
+    /// Construct an entity with behaviour `e` within the active facet, as a [`Ref`].
+    pub fn create_ref<M, E: Entity<M> + Send + 'static>(&mut self, e: E) -> Arc<Ref<M>> {
+        let r = self.create_inert_ref();
         r.become_entity(e);
         r
     }
 
+    /// Construct an entity with behaviour `e` within the active facet, as a [`Cap`]. If the
+    /// language accepted by `e` is `AnyValue`, consider using
+    /// [`create_anycap`][Self::create_anycap] instead, as it is slightly more efficient.
+    pub fn create_cap<M: 'static + Send, E: Entity<M> + Send + 'static>(
+        &mut self,
+        e: E
+    ) -> Arc<Cap>
+    where
+        M: Unparse<Arc<Cap>>,
+        M: Parse<Arc<Cap>>,
+    {
+        Cap::guard(self.create_ref(e))
+    }
+
+    /// Construct an entity with behaviour `e` within the active facet, as a [`Cap`], for
+    /// the special case of `AnyValue` being the language accepted by `e`. Slightly more
+    /// efficient, in this case, than [`create_cap`][Self::create_cap].
+    pub fn create_anycap<E: Entity<AnyValue> + Send + 'static>(&mut self, e: E) -> Arc<Cap> {
+        Cap::new(&self.create_ref(e))
+    }
+
     /// Construct an entity (within the active facet) whose behaviour will be specified later
     /// via [`become_entity`][Ref::become_entity].
-    pub fn create_inert<M>(&mut self) -> Arc<Ref<M>> {
+    pub fn create_inert_ref<M>(&mut self) -> Arc<Ref<M>> {
         Arc::new(Ref {
             mailbox: self.mailbox(),
             facet_id: self.facet_id(),
@@ -2375,7 +2401,7 @@ impl Drop for Facet {
 
 impl<M> Ref<M> {
     /// Supplies the behaviour (`e`) for a `Ref` created via
-    /// [`create_inert`][Activation::create_inert].
+    /// [`create_inert_ref`][Activation::create_inert_ref].
     ///
     /// # Panics
     ///

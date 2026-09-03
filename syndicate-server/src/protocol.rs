@@ -33,7 +33,7 @@ pub fn run_io_relay(
     o: relay::Output,
     initial_ref: Arc<Cap>,
 ) -> ActorResult {
-    let exit_listener = t.create(ExitListener);
+    let exit_listener = t.create_ref(ExitListener);
     t.add_exit_hook(&exit_listener);
     relay::TunnelRelay::run(t, i, o, Some(initial_ref), None, false);
     Ok(())

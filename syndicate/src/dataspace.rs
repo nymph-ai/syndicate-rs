@@ -28,8 +28,12 @@ pub struct Dataspace {
 }
 
 impl Dataspace {
-    /// Construct a new, empty dataspace.
-    pub fn new(name: Name) -> Self {
+    pub fn new(turn: &mut Activation, name: Name) -> std::sync::Arc<Cap> {
+        Cap::new(&turn.create_ref(Self::new_entity(name)))
+    }
+
+    /// Construct a new, empty dataspace entity.
+    pub fn new_entity(name: Name) -> Self {
         Self {
             name,
             index: skeleton::Index::new(),
@@ -79,7 +83,7 @@ impl Entity<_Any> for Dataspace {
 
                 if is_last {
                     if let Ok(o) = Observe::parse(&a) {
-                        self.index.remove_observer(t, o.pattern, &o.observer);
+                        self.index.remove_observer(t, &o.pattern, &o.observer);
                     }
                 }
             }

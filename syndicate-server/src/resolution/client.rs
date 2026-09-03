@@ -47,7 +47,7 @@ pub fn handle_simple_path_steps(t: &mut Activation, ds: Arc<Cap>, step_type: &'s
     during!(t, ds, <q <resolve-path-step $origin <#(AnyValue::symbol(step_type)) $detail>>>,
             enclose!((ds) move |t: &mut Activation| {
                 if let Some(origin) = origin.as_embedded().map(|r| r.into_owned()) {
-                    let observer = Cap::guard(t.create(
+                    let observer = t.create_cap(
                         syndicate::entity(()).on_asserted_facet(
                             enclose!((origin, detail) move |_, t, r: R::Result| {
                                 ds.assert(t, &rpc::answer(
@@ -60,7 +60,7 @@ pub fn handle_simple_path_steps(t: &mut Activation, ds: Arc<Cap>, step_type: &'s
                                     },
                                     r));
                                 Ok(())
-                            }))));
+                            })));
                     origin.assert(t, &G::Resolve {
                         step: G::Step {
                             step_type: step_type.to_string(),
@@ -103,7 +103,7 @@ fn run(t: &mut Activation, ds: Arc<Cap>, route: G::Route) -> ActorResult {
         Ok(())
     }))?;
 
-    let steps_ref = t.create(Dataspace::new(None));
+    let steps_ref = t.create_ref(Dataspace::new_entity(None));
     let steps_ds = Cap::new(&steps_ref);
 
     let mut handle_zero = None;

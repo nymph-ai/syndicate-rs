@@ -101,8 +101,8 @@ pub fn handle_noise_bindspace(t: &mut Activation, bindspace: &Arc<Cap>) -> Actor
                                          }
                                          Ok(spec) => {
                                              let hs = make_handshake(&spec, false)?;
-                                             let responder_session = Cap::guard(t.create(
-                                                 ResponderState::Introduction{ service, hs }));
+                                             let responder_session = t.create_cap(
+                                                 ResponderState::Introduction{ service, hs });
                                              observer.assert(t, &R::Result::Ok(R::Ok {
                                                  value: responder_session.unparse(),
                                              }));
@@ -471,7 +471,7 @@ fn run_noise_initiator(
     }).unparse();
     let service = spec.service.clone();
     let validated = validate_noise_spec(spec)?;
-    let observer = Cap::guard(t.create(
+    let observer = t.create_cap(
         syndicate::entity(()).on_asserted_facet(
             enclose!((ds, q) move |_, t, r: R::Result| {
                 match r {
@@ -485,7 +485,7 @@ fn run_noise_initiator(
                     }
                 }
                 Ok(())
-            }))));
+            })));
     origin.assert(t, &gatekeeper::Resolve {
         step: gatekeeper::Step {
             step_type: "noise".to_string(),
@@ -503,7 +503,7 @@ fn run_initiator_session(
     spec: &ValidatedNoiseSpec,
     responder_session: Arc<Cap>,
 ) -> ActorResult {
-    let initiator_session_ref = t.create_inert();
+    let initiator_session_ref = t.create_inert_ref();
     let initiator_session = Cap::guard(initiator_session_ref.clone());
     responder_session.assert(t, &noise::Initiator { initiator_session });
     let mut hss = HandshakeState {

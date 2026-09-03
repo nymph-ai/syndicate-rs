@@ -17,7 +17,7 @@ pub fn adjust(t: &mut Activation, f: &Arc<Field<isize>>, delta: isize) {
 
 pub fn sync_and_adjust<M: 'static + Send>(t: &mut Activation, r: &Arc<Ref<M>>, f: &Arc<Field<isize>>, delta: isize) {
     let f = f.clone();
-    let sync_handler = t.create(move |t: &mut Activation| {
+    let sync_handler = t.create_ref(move |t: &mut Activation| {
         tracing::trace!(?f, v0 = ?t.get(&f), "sync");
         *t.get_mut(&f) += delta;
         tracing::trace!(?f, v1 = ?t.get(&f), "sync");

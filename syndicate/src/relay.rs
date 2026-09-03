@@ -178,7 +178,7 @@ impl Membrane {
     }
 
     fn insert_inert_entity(&mut self, t: &mut Activation, oid: SignedInteger) -> Arc<WireSymbol> {
-        self.insert(oid, Cap::new(&t.inert_entity()))
+        self.insert(oid, Cap::new(&t.inert_entity_ref()))
     }
 }
 
@@ -200,7 +200,7 @@ pub fn connect_stream<I, O, Step, E, F>(
     let i = Input::Bytes(Box::pin(i));
     let o = Output::Bytes(Box::pin(o));
     let gatekeeper = TunnelRelay::run(t, i, o, None, Some(sturdy::Oid(0.into())), output_text).unwrap();
-    let main_entity = t.create(during::entity(initial_state).on_asserted(move |state, t, a: rpc::Result| {
+    let main_entity = t.create_cap(during::entity(initial_state).on_asserted(move |state, t, a: rpc::Result| {
         match a {
             rpc::Result::Ok(rpc::Ok { value }) =>
                 if let Some(responder_session) = value.as_embedded() {
@@ -214,7 +214,7 @@ pub fn connect_stream<I, O, Step, E, F>(
     let step = gatekeeper::Step::parse(&step.unparse())?;
     gatekeeper.assert(t, &gatekeeper::Resolve::<Arc<Cap>> {
         step,
-        observer: Cap::guard(main_entity),
+        observer: main_entity,
     });
     Ok(())
 }
@@ -306,7 +306,7 @@ impl TunnelRelay {
     ) -> (Option<Arc<Cap>>, Arc<Mutex<Option<TunnelRelay>>>, UnboundedReceiver<LoanedItem<Vec<u8>>>) {
         let (output_tx, output_rx) = unbounded_channel();
         let tr_ref = Arc::new(Mutex::new(None));
-        let self_entity = t.create(TunnelRefEntity {
+        let self_entity = t.create_ref(TunnelRefEntity {
             relay_ref: Arc::clone(&tr_ref),
         });
         let mut tr = TunnelRelay {
@@ -490,7 +490,7 @@ impl TunnelRelay {
                         Ok(())
                     }
                 }
-                let k = t.create(SyncPeer {
+                let k = t.create_ref(SyncPeer {
                     relay_ref: Arc::clone(&self.self_ref),
                     peer: Arc::clone(&peer),
                     pins,
@@ -638,7 +638,7 @@ impl Membranes {
         relay_ref: &TunnelRelayRef,
         oid: SignedInteger,
     ) -> Arc<WireSymbol> {
-        let obj = t.create(RelayEntity { relay_ref: Arc::clone(relay_ref), oid: oid.clone() });
+        let obj = t.create_ref(RelayEntity { relay_ref: Arc::clone(relay_ref), oid: oid.clone() });
         self.imported.insert(oid, Cap::new(&obj))
     }
 

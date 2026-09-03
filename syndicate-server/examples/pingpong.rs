@@ -110,7 +110,7 @@ async fn main() -> ActorResult {
                 let mut rtt_ns_samples: Vec<u64> = vec![0; report_latency_every];
                 let mut rtt_batch_count: usize = 0;
                 let current_reply = Arc::new(Mutex::new(None));
-                Cap::new(&t.create(
+                t.create_anycap(
                     syndicate::entity(())
                         .on_message(move |(), t, m: AnyValue| {
                             match m.as_boolean() {
@@ -158,7 +158,7 @@ async fn main() -> ActorResult {
                                 }
                             }
                             Ok(())
-                        })))
+                        }))
             };
 
             ds.assert(t, &Observe {

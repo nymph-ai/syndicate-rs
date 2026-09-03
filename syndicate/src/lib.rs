@@ -180,9 +180,9 @@ macro_rules! stdio_service {
         async fn main() -> syndicate::actor::ActorResult {
             syndicate::convenient_logging()?;
             syndicate::relay::stdio_service(|t| {
-                let service_object = syndicate::actor::Cap::new(&t.create(
-                    syndicate::dataspace::Dataspace::new(
-                        Some(syndicate::actor::AnyValue::symbol("service")))));
+                let service_object =
+                    syndicate::dataspace::Dataspace::new(t, Some(
+                        syndicate::actor::AnyValue::symbol("service")));
                 $(
                     syndicate_macros::during!(
                         t, service_object, $($pat)+,

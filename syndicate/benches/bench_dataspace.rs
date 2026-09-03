@@ -53,8 +53,8 @@ pub fn bench_pub(c: &mut Criterion) {
                     // The reason this works is that all the messages to `ds` will be delivered
                     // before the message to `shutdown`, because `ds` and `shutdown` are in the
                     // same Actor.
-                    let ds = t.create(Dataspace::new(None));
-                    let shutdown = t.create(ShutdownEntity);
+                    let ds = t.create_ref(Dataspace::new_entity(None));
+                    let shutdown = t.create_ref(ShutdownEntity);
                     for _ in 0..iters {
                         t.message(&ds, says(AnyValue::new("bench_pub"), Value::bytes(vec![])));
                     }
@@ -77,7 +77,7 @@ pub fn bench_pub(c: &mut Criterion) {
                     let turn_count = Arc::clone(&turn_count);
 
                     move |t| {
-                        let ds = Cap::new(&t.create(Dataspace::new(None)));
+                        let ds = Dataspace::new(t, None);
 
                         let shutdown = entity(())
                             .on_asserted(|_, _, _| Ok(Some(Box::new(|_, t| Ok(t.stop())))))
@@ -101,8 +101,8 @@ pub fn bench_pub(c: &mut Criterion) {
                                 }
                             }
 
-                            let shutdown = Cap::new(&t.create(ShutdownEntity));
-                            let receiver = Cap::new(&t.create(Receiver(Arc::clone(&turn_count))));
+                            let shutdown = t.create_anycap(ShutdownEntity);
+                            let receiver = t.create_anycap(Receiver(Arc::clone(&turn_count)));
 
                             ds.assert(t, &AnyValue::symbol("consumer"));
                             ds.assert(t, &Observe {

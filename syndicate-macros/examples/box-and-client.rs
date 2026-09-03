@@ -7,7 +7,7 @@ use syndicate::schemas::dataspace::Observe;
 async fn main() -> ActorResult {
     syndicate::convenient_logging()?;
     Actor::top(None, |t| {
-        let ds = Cap::new(&t.create(Dataspace::new(None)));
+        let ds = Dataspace::new(t, None);
         let _ = t.prevent_inert_check();
 
         t.spawn(Some(AnyValue::symbol("box")), enclose!((ds) move |t| {

@@ -565,10 +565,10 @@ impl Env {
     pub fn eval_expr(&self, t: &mut Activation, e: &Expr) -> io::Result<AnyValue> {
         match e {
             Expr::Template { template } => self.instantiate_value(template),
-            Expr::Dataspace => Ok(AnyValue::embedded(Cap::new(&t.create(Dataspace::new(None))))),
+            Expr::Dataspace => Ok(AnyValue::embedded(Dataspace::new(t, None))),
             Expr::Timestamp => Ok(AnyValue::new(chrono::Utc::now().to_rfc3339())),
             Expr::Tai64n => Ok(AnyValue::new(syndicate::tai64n_label())),
-            Expr::Facet => Ok(AnyValue::embedded(Cap::new(&t.create(FacetHandle::new())))),
+            Expr::Facet => Ok(AnyValue::embedded(t.create_anycap(FacetHandle::new()))),
             Expr::ScriptDir => {
                 let p = match self.path.parent().map(|p| p.to_string_lossy()) {
                     Some(p) => if p == Cow::Borrowed("") { Cow::Borrowed(".") } else { p },

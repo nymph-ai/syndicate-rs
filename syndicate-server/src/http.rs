@@ -176,7 +176,7 @@ pub async fn serve(
                 body,
             };
             tracing::debug!(?sreq);
-            let srep = Cap::guard(t.create(ResponseCollector::new(tx)));
+            let srep = t.create_cap(ResponseCollector::new(tx));
             httpd.assert(t, &http::HttpContext { req: sreq, res: srep });
             Ok(())
         })?;

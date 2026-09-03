@@ -33,7 +33,7 @@ type Captures = AnyValue;
 /// entities.
 #[derive(Debug)]
 pub struct Index {
-    all_assertions: Bag<AnyValue>,
+    pub all_assertions: Bag<AnyValue>,
     observer_count: usize,
     root: Node,
 }
@@ -100,11 +100,11 @@ impl Index {
     pub fn remove_observer(
         &mut self,
         t: &mut Activation,
-        pat: ds::Pattern,
+        pat: &ds::Pattern,
         observer: &Arc<Cap>,
     ) {
-        let analysis = pattern::PatternAnalysis::new(&pat);
-        self.root.extend(&pat).remove_observer(t, analysis, observer);
+        let analysis = pattern::PatternAnalysis::new(pat);
+        self.root.extend(pat).remove_observer(t, analysis, observer);
         self.observer_count -= 1;
     }
 

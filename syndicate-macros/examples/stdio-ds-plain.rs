@@ -9,7 +9,7 @@ use syndicate::preserves::*;
 async fn main() -> ActorResult {
     syndicate::convenient_logging()?;
     syndicate::relay::stdio_service(move |t| {
-        let local_ds = Cap::new(&t.create(Dataspace::new(Some(AnyValue::symbol("service")))));
+        let local_ds = Dataspace::new(t, Some(AnyValue::symbol("service")));
 
         during!(t, local_ds, $v, |t: &mut Activation| {
             t.on_stop(enclose!((v) move |_t| { tracing::info!("- {v:?}"); Ok(()) }));

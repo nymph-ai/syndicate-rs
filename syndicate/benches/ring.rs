@@ -93,7 +93,7 @@ pub fn bench_ring(c: &mut Criterion) {
                                 Some(Value::record(Value::symbol("forwarder"), vec![Value::new(i)])),
                                 move |t| {
                                     let _ = t.prevent_inert_check();
-                                    let f = t.create(Forwarder {
+                                    let f = t.create_ref(Forwarder {
                                         next,
                                     });
                                     t.message(&spawner_ref, f);
@@ -124,11 +124,11 @@ pub fn bench_ring(c: &mut Criterion) {
                 Actor::top(None, move |t| {
                     let _ = t.prevent_inert_check();
                     let mut s = Spawner {
-                        self_ref: t.create_inert(),
+                        self_ref: t.create_inert_ref(),
                         tx,
                         iters,
                         i: 1,
-                        c: t.create_inert(),
+                        c: t.create_inert_ref(),
                     };
                     s.step(t, Arc::clone(&s.c))?;
                     Arc::clone(&s.self_ref).become_entity(s);

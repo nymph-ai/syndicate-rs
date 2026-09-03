@@ -43,10 +43,10 @@ pub fn create_gatekeeper(t: &mut Activation, bindspace: &Arc<Cap>) -> Result<Arc
     // in the Rust code.
     sturdy::handle_sturdy_bindspace(t, bindspace)?;
     noise::handle_noise_bindspace(t, bindspace)?;
-    Ok(Cap::guard(t.create(
+    Ok(t.create_cap(
         syndicate::entity(Arc::clone(bindspace))
             .on_asserted_facet(move |bindspace, t, a: gatekeeper::Resolve| {
                 bindspace.assert(t, &a);
                 Ok(())
-            }))))
+            })))
 }

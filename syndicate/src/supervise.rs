@@ -124,7 +124,7 @@ impl Supervisor {
     ) -> ActorResult {
         let _entry = tracing::info_span!("supervisor", ?name).entered();
         tracing::trace!(?config);
-        let self_ref = t.create_inert();
+        let self_ref = t.create_inert_ref();
         let state_field = t.named_field("supervisee_state", State::Started);
         let my_name = name.as_ref().map(
             |n| Value::record(AnyValue::symbol("supervisor"), vec![n.clone()]));

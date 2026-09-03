@@ -42,7 +42,7 @@ pub fn on_demand(t: &mut Activation, ds: Arc<Cap>) {
                 enclose!((ds) move |t| enclose!((ds, addr) run(t, ds, addr))))
         }));
         during!(t, ds, <q <connect-transport $addr: Arc<Cap>>>, |t: &mut Activation| {
-            let control = Cap::guard(t.create_inert::<AnyValue>());
+            let control = t.inert_entity_cap();
             ds.assert(t, &rpc::answer(
                 G::ConnectTransport { addr: addr.unparse() },
                 R::Result::Ok(R::Ok { value: (G::ConnectedTransport {
@@ -74,7 +74,7 @@ fn run(t: &mut Activation, ds: Arc<Cap>, addr: Tcp) -> ActorResult {
                 facet.activate(&account, cause, |t| {
                     let peer = relay::TunnelRelay::run(t, i, o, None, initial_oid, false)
                         .expect("missing initial cap on connection");
-                    let control = Cap::guard(t.create(TransportControl));
+                    let control = t.create_cap(TransportControl);
                     ds.assert(t, &rpc::answer(
                         G::ConnectTransport { addr: addr.unparse() },
                         R::Result::Ok(R::Ok { value: (G::ConnectedTransport {
