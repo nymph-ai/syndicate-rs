@@ -96,6 +96,9 @@ pub struct TunnelRelay
     self_ref: TunnelRelayRef,
     inbound_assertions: Map</* remote */ P::Handle, (/* local */ Handle, Vec<Arc<WireSymbol>>)>,
     outbound_assertions: Map<P::Handle, Vec<Arc<WireSymbol>>>,
+    // Exported sync peers awaiting their reply, by oid, with how many syncs each is the peer of. The
+    // reference taken when a Sync's peer is encoded is held until the peer's reply arrives.
+    outbound_syncs: Map<SignedInteger, usize>,
     membranes: Membranes,
     pending_outbound: Vec<P::TurnEvent<Arc<Cap>>>,
     output: UnboundedSender<LoanedItem<Vec<u8>>>,
@@ -315,6 +318,7 @@ impl TunnelRelay {
             output_text,
             inbound_assertions: Map::new(),
             outbound_assertions: Map::new(),
+            outbound_syncs: Map::new(),
             membranes: Membranes {
                 exported: Membrane::new(WireSymbolSide::Exported),
                 imported: Membrane::new(WireSymbolSide::Imported),
@@ -469,6 +473,16 @@ impl TunnelRelay {
                 }).map_err(|_| error("Cannot receive transient reference", AnyValue::new(false)))?;
                 target.message(t, &a);
                 self.membranes.release(pins);
+                // A reply to a sync this relay forwarded: release the reference held for it.
+                if let Some(count) = self.outbound_syncs.get_mut(oid) {
+                    *count -= 1;
+                    if *count == 0 {
+                        self.outbound_syncs.remove(oid);
+                    }
+                    if let Some(ws) = self.membranes.exported.oid_map.get(oid).map(Arc::clone) {
+                        self.membranes.release_one(ws);
+                    }
+                }
                 dump_membranes!(self.membranes);
             }
             P::Event::Sync(b) => {
@@ -577,8 +591,15 @@ impl TunnelRelay {
                 }).map_err(|_| error("Sent transient reference", AnyValue::new(false)))?;
                 dump_membranes!(self.membranes);
             },
-            P::Event::Sync(_b) =>
-                todo!(),
+            P::Event::Sync(b) => {
+                // Encoding exported the peer and took one reference for this event. Unlike a message's
+                // references, it must outlive the event: the remote side answers by messaging the peer,
+                // so the reference is held until that reply is delivered (_handle_inbound_event).
+                let P::Sync { peer } = b;
+                let ws = self.membranes.lookup_ref(peer);
+                *self.outbound_syncs.entry(ws.oid.clone()).or_default() += 1;
+                dump_membranes!(self.membranes);
+            }
         }
         Ok(())
     }
